@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <!-- 动态渲染标题 -->
+    <title>项目跟踪 - <%= projectData.projectName %></title>
+    
+    <!-- 你现在可以引入独立的外部 CSS 文件了！(放在 public 文件夹下) -->
+    <link rel="stylesheet" href="/style.css">
+</head>
+<body>
+    <div class="card">
+        <!-- 动态渲染数据 -->
+        <h2>项目名称：<%= projectData.projectName %></h2>
+        <p>当前状态：<b><%= projectData.status %></b></p>
+        
+        <!-- 假设 n8n 还返回了负责人、截止日期，你可以随意增加： -->
+        <!-- <p>负责人：<%= projectData.owner %></p> -->
+    </div>
+
+    <div class="card">
+        <h3>提交更新记录</h3>
+        <textarea id="userInput" placeholder="在此输入要提交给 Notion 的内容..."></textarea>
+        <br>
+        <button id="submitBtn" onclick="submitData()">提交到 Notion</button>
+        <p id="statusMsg" style="color: green;"></p>
+    </div>
+
+    <!-- 前端 JS 逻辑依然可以写在底部，或者也抽离到 public/script.js 中 -->
+    <script>
+        async function submitData() {
+            const content = document.getElementById('userInput').value;
+            if (!content) return alert("请先输入内容！");
+            
+            const btn = document.getElementById('submitBtn');
+            const statusMsg = document.getElementById('statusMsg');
+            
+            // 这里非常巧妙，通过 <%= %> 语法直接把后端的项目 ID 注入给前端 JS
+            const projectId = '<%= projectId %>'; 
+
+            btn.disabled = true;
+            btn.innerText = "正在提交...";
+
+            try {
+                const res = await fetch('/api/upload', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ projectId, content })
+                });
+                const result = await res.json();
+                
+                if(result.success) {
+                    statusMsg.innerText = "提交成功！";
+                    document.getElementById('userInput').value = '';
+                } else {
+                    statusMsg.style.color = 'red';
+                    statusMsg.innerText = "提交失败：" + result.message;
+                }
+            } catch (e) {
+                statusMsg.style.color = 'red';
+                statusMsg.innerText = "网络错误！";
+            } finally {
+                btn.disabled = false;
+                btn.innerText = "提交到 Notion";
+            }
+        }
+    </script>
+</body>
+</html>
