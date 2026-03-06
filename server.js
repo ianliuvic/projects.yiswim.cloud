@@ -46,7 +46,7 @@ app.get('/:projectId', async (req, res) => {
         const n8nUrl = `https://n8n.yiswim.cloud/webhook-test/check-project?id=${projectId}`;
         const response = await fetch(n8nUrl);
         
-        if (!response.ok) return res.status(404).send('项目不存在');
+        if (!response.ok) return res.status(404).send('404 Not Found');
 
         // n8n 返回的格式假设为 { "projectName": "XX", "status": "XX" }
         const projectData = await response.json();
@@ -132,4 +132,5 @@ app.get('/:projectId', async (req, res) => {
 
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => console.log(`服务已启动，端口 ${PORT}`));
+
 
