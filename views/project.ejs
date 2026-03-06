@@ -200,19 +200,38 @@
     function renderTimeline() {
         const stepId = STEPS_CONFIG[state.activeStepIndex].id;
         document.getElementById('currentStepName').innerText = STEPS_CONFIG[state.activeStepIndex].title;
-        const records = state.nodesData[stepId] || [];
+        
+        // --- 修复逻辑开始 ---
+        let records = state.nodesData[stepId];
+    
+        // 1. 如果数据不存在，设为空数组
+        if (!records) {
+            records = [];
+        } 
+        // 2. 如果数据存在但不是数组（兼容旧版数据格式格式）
+        else if (!Array.isArray(records)) {
+            // 如果旧数据是 { text: '...' } 这种对象格式，将其转为新版的数组格式
+            if (typeof records === 'object' && records.text) {
+                records = [{ time: '历史数据', html: records.text }];
+            } else {
+                records = [];
+            }
+        }
+        // --- 修复逻辑结束 ---
+    
         const container = document.getElementById('timelineContainer');
         
         if (records.length === 0) {
-            container.innerHTML = `<div style="text-align:center; color:#ccc; padding:20px;">暂无历史记录</div>`;
+            container.innerHTML = `<div style="text-align:center; color:#ccc; padding:40px;">暂无该阶段的更新记录</div>`;
             return;
         }
-
+    
+        // 现在可以安全地使用 [...records] 了
         container.innerHTML = [...records].reverse().map(item => `
             <div class="timeline-item">
                 <div class="timeline-dot"></div>
-                <div class="timeline-time">${item.time}</div>
-                <div class="timeline-content">${item.html}</div>
+                <div class="timeline-time">${item.time || '未知时间'}</div>
+                <div class="timeline-content">${item.html || item.text || ''}</div>
             </div>
         `).join('');
     }
