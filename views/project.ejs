@@ -3,68 +3,416 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <!-- 动态渲染标题 -->
-    <title>项目跟踪 - <%= projectData.projectName %></title>
+    <!-- 【修改1】使用 EJS 动态渲染网页标题 -->
+    <title><%= projectData.projectName ? projectData.projectName + ' - ' : '' %>工作流进度看板</title>
     
-    <!-- 你现在可以引入独立的外部 CSS 文件了！(放在 public 文件夹下) -->
-    <link rel="stylesheet" href="/style.css">
+    <style>
+        /* 这里完全保留了你提供的华丽 CSS 样式 */
+        :root {
+            --primary: #2563eb;       
+            --primary-hover: #1d4ed8;
+            --success: #22c55e;       
+            --gray-100: #f3f4f6;
+            --gray-200: #e5e7eb;
+            --gray-300: #d1d5db;
+            --gray-500: #6b7280;
+            --gray-800: #1f2937;
+            --bg-color: #f9fafb;
+            --white: #ffffff;
+            --radius: 8px;
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; background-color: var(--bg-color); color: var(--gray-800); padding: 20px; line-height: 1.5; }
+        .container { margin: 0 auto; max-width: 1000px; }
+        .hidden { display: none !important; }
+        button { cursor: pointer; border: none; font-family: inherit; }
+
+        /* 顶部项目标题 (新增) */
+        .project-header { margin-bottom: 20px; padding-bottom: 10px; border-bottom: 2px solid var(--gray-200); display: flex; justify-content: space-between; align-items: flex-end;}
+        .project-header h1 { color: var(--gray-800); font-size: 24px; }
+        .project-header span { color: var(--gray-500); font-size: 14px; }
+
+        /* 顶部角色选择 */
+        .role-selector { display: flex; justify-content: flex-end; align-items: center; margin-bottom: 30px; background: var(--white); padding: 12px; border-radius: var(--radius); box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
+        .role-selector select { margin-left: 10px; padding: 6px; border: 1px solid var(--gray-300); border-radius: 4px; }
+
+        /* 进度条 */
+        .stepper-container { display: flex; align-items: center; justify-content: space-between; margin-bottom: 40px; }
+        .step { display: flex; align-items: center; flex-direction: column; position: relative; cursor: pointer; flex: 1; opacity: 0.6; transition: opacity 0.3s; }
+        .step:hover { opacity: 1; }
+        .step.active { opacity: 1; }
+        
+        .step-circle { width: 40px; height: 40px; border-radius: 50%; background-color: var(--gray-200); color: var(--gray-500); display: flex; align-items: center; justify-content: center; font-weight: bold; z-index: 2; transition: all 0.3s; }
+        .step.active .step-circle { background-color: var(--primary); color: var(--white); box-shadow: 0 0 0 4px #dbeafe; }
+        .step.completed .step-circle { background-color: var(--success); color: var(--white); }
+        
+        .step-title { margin-top: 10px; font-size: 14px; font-weight: 500; color: var(--gray-500); display: flex; align-items: center; }
+        .step.active .step-title { color: var(--primary); }
+        
+        .data-dot { width: 8px; height: 8px; background-color: var(--success); border-radius: 50%; margin-left: 4px; display: inline-block; }
+
+        .step-line { flex: 1; height: 3px; background-color: var(--gray-200); margin: 0 15px; transform: translateY(-15px); }
+        .step-line.completed { background-color: var(--success); }
+
+        /* 内容面板 */
+        .panel { background: var(--white); border-radius: var(--radius); box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); overflow: hidden; margin-bottom: 20px; }
+        .panel-header { background: #eff6ff; padding: 20px 24px; border-bottom: 1px solid #dbeafe; display: flex; justify-content: space-between; align-items: center; }
+        .panel-header h2 { font-size: 18px; color: var(--gray-800); }
+        .panel-header .permission-tag { font-size: 13px; color: var(--gray-500); margin-left: 10px; font-weight: normal; }
+        
+        .btn-primary { background: var(--primary); color: var(--white); padding: 8px 16px; border-radius: 4px; font-size: 14px; transition: background 0.2s; }
+        .btn-primary:hover { background: var(--primary-hover); }
+        .btn-success { background: var(--success); color: var(--white); padding: 8px 16px; border-radius: 4px; font-size: 14px; }
+        .btn-success:disabled { background: var(--gray-300); cursor: not-allowed; }
+        .btn-default { background: var(--white); color: var(--gray-800); border: 1px solid var(--gray-300); padding: 8px 16px; border-radius: 4px; font-size: 14px; }
+
+        .panel-body { padding: 24px; }
+        
+        .view-mode .content-block { background: var(--gray-100); padding: 16px; border-radius: var(--radius); border: 1px solid var(--gray-200); min-height: 60px; white-space: pre-wrap; margin-bottom: 20px;}
+        .section-title { font-size: 12px; text-transform: uppercase; color: var(--gray-500); font-weight: bold; margin-bottom: 8px; }
+
+        .edit-mode textarea { width: 100%; min-height: 120px; padding: 12px; border: 1px solid var(--gray-300); border-radius: var(--radius); resize: vertical; margin-bottom: 20px; font-family: inherit; }
+        .edit-mode textarea:focus { outline: none; border-color: var(--primary); box-shadow: 0 0 0 2px #dbeafe; }
+        .upload-area { border: 2px dashed var(--gray-300); padding: 30px; text-align: center; color: var(--gray-500); border-radius: var(--radius); background: #f8fafc; cursor: pointer; margin-bottom: 20px; }
+        .upload-area:hover { background: var(--gray-100); }
+        .edit-actions { display: flex; justify-content: flex-end; align-items: center; gap: 10px; border-top: 1px solid var(--gray-200); padding-top: 16px; }
+
+        .empty-state { text-align: center; padding: 40px 20px; background: #f8fafc; border: 1px dashed var(--gray-300); border-radius: var(--radius); }
+        .empty-state h3 { margin-bottom: 8px; color: var(--gray-800); }
+        .empty-state p { color: var(--gray-500); margin-bottom: 20px; font-size: 14px; }
+
+        .log-section { background: #f8fafc; border-top: 1px solid var(--gray-200); padding: 16px 24px; }
+        .log-list { list-style: none; font-size: 12px; color: var(--gray-500); }
+        .log-list li { margin-bottom: 4px; display: flex; align-items: center; }
+        .log-list li::before { content: ""; width: 6px; height: 6px; background: var(--primary); border-radius: 50%; margin-right: 8px; }
+
+        .footer-action { display: flex; justify-content: flex-end; margin-top: 20px; }
+        .btn-next { background: transparent; color: var(--primary); font-size: 16px; font-weight: bold; display: flex; align-items: center; gap: 5px; }
+        .btn-next:hover { color: var(--primary-hover); }
+
+        @media (max-width: 768px) {
+            .stepper-container { flex-direction: column; align-items: flex-start; }
+            .step { flex-direction: row; width: 100%; margin-bottom: 0; padding: 10px 0; }
+            .step-title { margin-top: 0; margin-left: 15px; }
+            .step-line { width: 3px; height: 30px; margin: 0 0 0 18px; transform: none; flex: none; }
+        }
+    </style>
 </head>
 <body>
-    <div class="card">
-        <!-- 动态渲染数据 -->
-        <h2>项目名称：<%= projectData.projectName %></h2>
-        <p>当前状态：<b><%= projectData.status %></b></p>
-        
-        <!-- 假设 n8n 还返回了负责人、截止日期，你可以随意增加： -->
-        <!-- <p>负责人：<%= projectData.owner %></p> -->
+
+<div class="container">
+    <!-- 新增：展示项目名称和ID -->
+    <div class="project-header">
+        <h1><%= projectData.projectName || '未命名项目' %></h1>
+        <span>项目 ID: <%= projectId %></span>
     </div>
 
-    <div class="card">
-        <h3>提交更新记录</h3>
-        <textarea id="userInput" placeholder="在此输入要提交给 Notion 的内容..."></textarea>
-        <br>
-        <button id="submitBtn" onclick="submitData()">提交到 Notion</button>
-        <p id="statusMsg" style="color: green;"></p>
+    <!-- 角色选择器 (保留模拟功能) -->
+    <div class="role-selector">
+        <label style="font-size: 14px; color: var(--gray-500);">当前模拟角色：</label>
+        <select id="roleSelect" onchange="changeRole()">
+            <option value="admin">管理员 (所有权限)</option>
+            <option value="product">产品经理 (仅需求)</option>
+            <option value="factory">工厂人员 (仅生产)</option>
+            <option value="visitor">访客 (无权限)</option>
+        </select>
     </div>
 
-    <!-- 前端 JS 逻辑依然可以写在底部，或者也抽离到 public/script.js 中 -->
-    <script>
-        async function submitData() {
-            const content = document.getElementById('userInput').value;
-            if (!content) return alert("请先输入内容！");
-            
-            const btn = document.getElementById('submitBtn');
-            const statusMsg = document.getElementById('statusMsg');
-            
-            // 这里非常巧妙，通过 <%= %> 语法直接把后端的项目 ID 注入给前端 JS
-            const projectId = '<%= projectId %>'; 
+    <!-- 进度条容器 -->
+    <div class="stepper-container" id="stepperContainer"></div>
 
-            btn.disabled = true;
-            btn.innerText = "正在提交...";
+    <!-- 动态内容面板 -->
+    <div class="panel">
+        <div class="panel-header">
+            <h2><span id="panelTitle">需求</span>阶段 <span class="permission-tag" id="permissionText">具备操作权限</span></h2>
+            <button id="btnEdit" class="btn-primary" onclick="enterEditMode()">编辑内容</button>
+        </div>
 
-            try {
-                const res = await fetch('/api/upload', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ projectId, content })
-                });
-                const result = await res.json();
+        <div class="panel-body">
+            <!-- 展示模式 -->
+            <div id="viewMode" class="view-mode">
+                <div id="emptyState" class="empty-state hidden">
+                    <h3>暂无内容记录</h3>
+                    <p>当前阶段还没有添加任何文字或图片描述</p>
+                    <button id="btnEmptyAdd" class="btn-primary hidden" onclick="enterEditMode()">+ 添加第一条记录</button>
+                </div>
                 
-                if(result.success) {
-                    statusMsg.innerText = "提交成功！";
-                    document.getElementById('userInput').value = '';
-                } else {
-                    statusMsg.style.color = 'red';
-                    statusMsg.innerText = "提交失败：" + result.message;
-                }
-            } catch (e) {
-                statusMsg.style.color = 'red';
-                statusMsg.innerText = "网络错误！";
-            } finally {
-                btn.disabled = false;
-                btn.innerText = "提交到 Notion";
+                <div id="dataDisplay">
+                    <div class="section-title">详情描述</div>
+                    <div id="displayText" class="content-block"></div>
+                </div>
+            </div>
+
+            <!-- 编辑模式 -->
+            <div id="editMode" class="edit-mode hidden">
+                <div class="section-title">描述内容</div>
+                <textarea id="editTextArea" placeholder="请输入当前阶段的详细记录..."></textarea>
+                
+                <div class="section-title">上传附件</div>
+                <div class="upload-area">
+                    <div style="font-size: 24px; margin-bottom: 10px;">+</div>
+                    <div>点击或将图片拖拽到此处上传<br><span style="font-size: 12px;">(仅作为UI演示，不含真实上传逻辑)</span></div>
+                </div>
+
+                <div class="edit-actions">
+                    <span id="saveStatusMsg" style="color: red; font-size: 14px; margin-right: auto;"></span>
+                    <button class="btn-default" onclick="exitEditMode()">取消</button>
+                    <!-- 【修改2】给保存按钮加上 id 方便控制禁用状态 -->
+                    <button id="btnSave" class="btn-success" onclick="saveData()">保存并生成日志</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- 日志区域 -->
+        <div id="logSection" class="log-section hidden">
+            <div class="section-title">操作日志</div>
+            <ul id="logList" class="log-list"></ul>
+        </div>
+    </div>
+
+    <div class="footer-action">
+        <button id="btnNext" class="btn-next" onclick="goToNextStep()">进入下一阶段 →</button>
+    </div>
+</div>
+
+<script>
+    // 【修改3】核心数据注入：接收从后端 n8n 传过来的真实数据！
+    const PROJECT_ID = '<%= projectId %>';
+    // 我们将后端的 JSON 注入为前端的 JS 对象
+    const BACKEND_DATA = <%- JSON.stringify(projectData) %>;
+
+    // 工作流配置保持不变
+    const STEPS_CONFIG =[
+        { id: 'requirement', title: '需求', allowedRoles: ['admin', 'product'] },
+        { id: 'preparation', title: '准备', allowedRoles: ['admin', 'manager'] },
+        { id: 'production', title: '生产', allowedRoles: ['admin', 'factory'] },
+        { id: 'qa', title: '质检', allowedRoles: ['admin', 'qa'] },
+        { id: 'transport', title: '运输', allowedRoles: ['admin', 'logistics'] },
+        { id: 'done', title: '完成', allowedRoles: ['admin'] }
+    ];
+
+    // 【修改4】初始化状态：如果 n8n 传来了数据，就用 n8n 的，否则用默认的空数据
+    let state = {
+        currentRole: 'admin',
+        activeStepIndex: 0,
+        isEditing: false,
+        nodesData: BACKEND_DATA.nodesData || {
+            requirement: { text: '客户需要生产一批高质量的环保袋...', logs:['admin 于初始化时创建'] },
+            preparation: { text: '', logs:[] },
+            production: { text: '', logs:[] },
+            qa: { text: '', logs:[] },
+            transport: { text: '', logs:[] },
+            done: { text: '', logs:[] }
+        }
+    };
+
+    // DOM 元素引用
+    const DOM = {
+        stepperContainer: document.getElementById('stepperContainer'),
+        panelTitle: document.getElementById('panelTitle'),
+        permissionText: document.getElementById('permissionText'),
+        btnEdit: document.getElementById('btnEdit'),
+        viewMode: document.getElementById('viewMode'),
+        editMode: document.getElementById('editMode'),
+        emptyState: document.getElementById('emptyState'),
+        dataDisplay: document.getElementById('dataDisplay'),
+        displayText: document.getElementById('displayText'),
+        editTextArea: document.getElementById('editTextArea'),
+        logSection: document.getElementById('logSection'),
+        logList: document.getElementById('logList'),
+        btnEmptyAdd: document.getElementById('btnEmptyAdd'),
+        btnNext: document.getElementById('btnNext'),
+        btnSave: document.getElementById('btnSave'),
+        saveStatusMsg: document.getElementById('saveStatusMsg')
+    };
+
+    function renderStepper() {
+        DOM.stepperContainer.innerHTML = '';
+        STEPS_CONFIG.forEach((step, index) => {
+            const isCompleted = index < state.activeStepIndex;
+            const isActive = index === state.activeStepIndex;
+            const hasData = state.nodesData[step.id] && state.nodesData[step.id].text !== '';
+
+            const stepDiv = document.createElement('div');
+            stepDiv.className = `step ${isActive ? 'active' : ''} ${isCompleted ? 'completed' : ''}`;
+            stepDiv.onclick = () => changeTab(index);
+
+            const circle = document.createElement('div');
+            circle.className = 'step-circle';
+            circle.innerText = isCompleted ? '✓' : (index + 1);
+            
+            const title = document.createElement('div');
+            title.className = 'step-title';
+            title.innerText = step.title;
+            
+            if (hasData && !isActive) {
+                const dot = document.createElement('span');
+                dot.className = 'data-dot';
+                title.appendChild(dot);
+            }
+
+            stepDiv.appendChild(circle);
+            stepDiv.appendChild(title);
+            DOM.stepperContainer.appendChild(stepDiv);
+
+            if (index < STEPS_CONFIG.length - 1) {
+                const line = document.createElement('div');
+                line.className = `step-line ${isCompleted ? 'completed' : ''}`;
+                DOM.stepperContainer.appendChild(line);
+            }
+        });
+    }
+
+    function renderPanel() {
+        const currentStepConfig = STEPS_CONFIG[state.activeStepIndex];
+        const currentData = state.nodesData[currentStepConfig.id] || { text: '', logs:[] };
+        const hasPermission = currentStepConfig.allowedRoles.includes(state.currentRole);
+
+        DOM.panelTitle.innerText = currentStepConfig.title;
+        DOM.permissionText.innerText = hasPermission ? '(具备操作权限)' : '(当前角色仅可查看)';
+        DOM.permissionText.style.color = hasPermission ? 'var(--success)' : 'var(--gray-500)';
+
+        if (state.isEditing || !hasPermission) {
+            DOM.btnEdit.classList.add('hidden');
+            DOM.btnEmptyAdd.classList.add('hidden');
+        } else {
+            DOM.btnEdit.classList.remove('hidden');
+            DOM.btnEmptyAdd.classList.remove('hidden');
+        }
+
+        if (state.isEditing) {
+            DOM.viewMode.classList.add('hidden');
+            DOM.editMode.classList.remove('hidden');
+            DOM.logSection.classList.add('hidden');
+            DOM.editTextArea.value = currentData.text; 
+            DOM.saveStatusMsg.innerText = ''; // 清空错误提示
+        } else {
+            DOM.editMode.classList.add('hidden');
+            DOM.viewMode.classList.remove('hidden');
+
+            if (currentData.text === '') {
+                DOM.emptyState.classList.remove('hidden');
+                DOM.dataDisplay.classList.add('hidden');
+            } else {
+                DOM.emptyState.classList.add('hidden');
+                DOM.dataDisplay.classList.remove('hidden');
+                DOM.displayText.innerText = currentData.text;
+            }
+
+            if (currentData.logs && currentData.logs.length > 0) {
+                DOM.logSection.classList.remove('hidden');
+                DOM.logList.innerHTML = currentData.logs.map(log => `<li>${log}</li>`).join('');
+            } else {
+                DOM.logSection.classList.add('hidden');
             }
         }
-    </script>
+
+        if (state.activeStepIndex < STEPS_CONFIG.length - 1) {
+            DOM.btnNext.classList.remove('hidden');
+            DOM.btnNext.innerText = `进入下一阶段：${STEPS_CONFIG[state.activeStepIndex + 1].title} →`;
+        } else {
+            DOM.btnNext.classList.add('hidden');
+        }
+    }
+
+    function updateUI() {
+        renderStepper();
+        renderPanel();
+    }
+
+    function changeRole() {
+        state.currentRole = document.getElementById('roleSelect').value;
+        state.isEditing = false;
+        updateUI();
+    }
+
+    function changeTab(index) {
+        state.activeStepIndex = index;
+        state.isEditing = false;
+        updateUI();
+    }
+
+    function enterEditMode() {
+        state.isEditing = true;
+        updateUI();
+        DOM.editTextArea.focus();
+    }
+
+    function exitEditMode() {
+        state.isEditing = false;
+        updateUI();
+    }
+
+    // 【修改5】改造保存函数：将数据真正发往后端 Node.js -> n8n
+    async function saveData() {
+        const currentStepId = STEPS_CONFIG[state.activeStepIndex].id;
+        const newText = DOM.editTextArea.value.trim();
+        
+        if (newText === '') {
+            DOM.saveStatusMsg.innerText = "内容不能为空";
+            return;
+        }
+
+        // 锁定按钮状态，防止重复提交
+        DOM.btnSave.disabled = true;
+        DOM.btnSave.innerText = "正在保存到 Notion...";
+        DOM.saveStatusMsg.innerText = "";
+        DOM.saveStatusMsg.style.color = "#2563eb"; // 蓝色提示
+
+        try {
+            // 发起真实网络请求给我们的 Node.js 后端 (/api/upload)
+            const res = await fetch('/api/upload', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ 
+                    projectId: PROJECT_ID,
+                    stepId: currentStepId,     // 告诉后端是在更新哪一个阶段
+                    role: state.currentRole,   // 记录是谁操作的
+                    content: newText 
+                })
+            });
+            
+            const result = await res.json();
+            
+            if (result.success) {
+                // 如果后端返回成功，才在前端真正更新数据状态
+                if (!state.nodesData[currentStepId]) {
+                    state.nodesData[currentStepId] = { text: '', logs:[] };
+                }
+                
+                state.nodesData[currentStepId].text = newText;
+
+                // 生成前端展示的日志记录
+                const now = new Date().toLocaleString('zh-CN');
+                const logMsg = `${state.currentRole} 角色 于 ${now} 进行了内容更新`;
+                state.nodesData[currentStepId].logs.push(logMsg);
+
+                // 退出编辑模式并刷新页面UI
+                state.isEditing = false;
+                updateUI();
+            } else {
+                throw new Error(result.message || "后端处理失败");
+            }
+        } catch (error) {
+            console.error(error);
+            DOM.saveStatusMsg.style.color = "red";
+            DOM.saveStatusMsg.innerText = "保存失败：" + error.message;
+        } finally {
+            // 恢复按钮状态
+            DOM.btnSave.disabled = false;
+            DOM.btnSave.innerText = "保存并生成日志";
+        }
+    }
+
+    function goToNextStep() {
+        if (state.activeStepIndex < STEPS_CONFIG.length - 1) {
+            changeTab(state.activeStepIndex + 1);
+        }
+    }
+
+    // 初始化
+    updateUI();
+</script>
 </body>
 </html>
