@@ -4,11 +4,12 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>项目跟踪 - <%= projectId %></title>
-    
-    <!-- 引入 Editor.js 相关库 -->
+
+    <!-- 在 head 标签中更新这些链接 -->
     <script src="https://cdn.jsdelivr.net/npm/@editorjs/editorjs@latest"></script>
     <script src="https://cdn.jsdelivr.net/npm/@editorjs/header@latest"></script>
-    <script src="https://cdn.jsdelivr.net/npm/@editorjs/list@latest"></script>
+    <!-- 明确使用 bundle.js 确保全局变量 List 被定义 -->
+    <script src="https://cdn.jsdelivr.net/npm/@editorjs/list@latest/dist/bundle.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@editorjs/image@latest"></script>
     
     <style>
