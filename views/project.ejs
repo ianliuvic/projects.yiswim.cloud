@@ -26,10 +26,10 @@
         .hidden { display: none !important; }
         button { cursor: pointer; border: none; font-family: inherit; }
 
-        /* ================= 优化后的顶部信息栏 ================= */
+        /* ================= 顶部信息栏 ================= */
         .project-header { 
             margin-bottom: 30px; 
-            padding: 20px; 
+            padding: 24px; 
             background: var(--white);
             border-radius: var(--radius);
             box-shadow: 0 1px 3px rgba(0,0,0,0.1);
@@ -37,93 +37,149 @@
             justify-content: space-between; 
             align-items: center;
         }
-        .header-left h1 { color: var(--gray-800); font-size: 20px; margin-bottom: 4px; }
+        .header-left h1 { color: var(--gray-800); font-size: 22px; margin-bottom: 6px; }
         .header-left .project-type { 
             display: inline-block;
             background: #dbeafe; 
             color: var(--primary); 
-            padding: 2px 8px; 
+            padding: 2px 10px; 
             border-radius: 4px; 
             font-size: 13px; 
             font-weight: bold;
         }
         
-        .header-right { text-align: right; display: flex; gap: 15px;}
+        .header-right { text-align: right; display: flex; gap: 12px;}
         .info-badge {
             background: var(--gray-100);
             border: 1px solid var(--gray-200);
-            padding: 6px 12px;
+            padding: 8px 14px;
             border-radius: 6px;
             font-size: 13px;
             color: var(--gray-500);
         }
-        .info-badge strong { color: var(--gray-800); }
+        .info-badge strong { color: var(--gray-800); margin-left: 4px; }
 
-        /* 进度条 */
-        .stepper-container { display: flex; align-items: center; justify-content: space-between; margin-bottom: 40px; }
-        .step { display: flex; align-items: center; flex-direction: column; position: relative; cursor: pointer; flex: 1; opacity: 0.6; transition: opacity 0.3s; }
-        .step:hover { opacity: 1; }
-        .step.active { opacity: 1; }
-        
-        .step-circle { width: 40px; height: 40px; border-radius: 50%; background-color: var(--gray-200); color: var(--gray-500); display: flex; align-items: center; justify-content: center; font-weight: bold; z-index: 2; transition: all 0.3s; }
-        .step.active .step-circle { background-color: var(--primary); color: var(--white); box-shadow: 0 0 0 4px #dbeafe; }
-        .step.completed .step-circle { background-color: var(--success); color: var(--white); }
-        
-        .step-title { margin-top: 10px; font-size: 14px; font-weight: 500; color: var(--gray-500); display: flex; align-items: center; }
-        .step.active .step-title { color: var(--primary); }
-        
-        .data-dot { width: 8px; height: 8px; background-color: var(--success); border-radius: 50%; margin-left: 4px; display: inline-block; }
-        .step-line { flex: 1; height: 3px; background-color: var(--gray-200); margin: 0 15px; transform: translateY(-15px); }
-        .step-line.completed { background-color: var(--success); }
+        /* ================= 优化后的进度条 (Stepper) ================= */
+        .stepper-container { 
+            display: flex; 
+            align-items: center; 
+            justify-content: space-between; 
+            margin: 40px 0;
+            padding: 0 10px;
+        }
 
-        /* 内容面板 */
+        .step-node {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+            cursor: pointer;
+            z-index: 2;
+        }
+
+        .step-circle { 
+            width: 64px; 
+            height: 64px; 
+            border-radius: 50%; 
+            background-color: var(--white); 
+            border: 2px solid var(--gray-300);
+            color: var(--gray-500); 
+            display: flex; 
+            align-items: center; 
+            justify-content: center; 
+            font-size: 14px; 
+            font-weight: 600; 
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            position: relative;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+        }
+
+        /* 激活状态 */
+        .step-node.active .step-circle { 
+            background-color: var(--primary); 
+            border-color: var(--primary);
+            color: var(--white); 
+            box-shadow: 0 0 0 4px #dbeafe;
+            transform: scale(1.1);
+        }
+
+        /* 完成状态 */
+        .step-node.completed .step-circle { 
+            background-color: var(--success); 
+            border-color: var(--success);
+            color: var(--white); 
+        }
+
+        /* 连接线 */
+        .step-line { 
+            flex: 1; 
+            height: 4px; 
+            background-color: var(--gray-200); 
+            margin: 0 -2px; /* 负边距确保与圆圈无缝连接 */
+            z-index: 1;
+            transition: background-color 0.3s;
+        }
+
+        .step-line.completed { 
+            background-color: var(--success); 
+        }
+
+        /* 数据指示小点 */
+        .data-dot {
+            position: absolute;
+            top: 2px;
+            right: 2px;
+            width: 10px;
+            height: 10px;
+            background-color: #fbbf24; /* 橘黄色提示有内容 */
+            border: 2px solid var(--white);
+            border-radius: 50%;
+        }
+
+        /* ================= 内容面板 ================= */
         .panel { background: var(--white); border-radius: var(--radius); box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); overflow: hidden; margin-bottom: 20px; }
-        .panel-header { background: #eff6ff; padding: 20px 24px; border-bottom: 1px solid #dbeafe; display: flex; justify-content: space-between; align-items: center; }
+        .panel-header { background: #f8fafc; padding: 20px 24px; border-bottom: 1px solid var(--gray-200); display: flex; justify-content: space-between; align-items: center; }
         .panel-header h2 { font-size: 18px; color: var(--gray-800); }
         
-        .btn-primary { background: var(--primary); color: var(--white); padding: 8px 16px; border-radius: 4px; font-size: 14px; transition: background 0.2s; }
+        .btn-primary { background: var(--primary); color: var(--white); padding: 8px 18px; border-radius: 6px; font-size: 14px; font-weight: 500; transition: background 0.2s; }
         .btn-primary:hover { background: var(--primary-hover); }
-        .btn-success { background: var(--success); color: var(--white); padding: 8px 16px; border-radius: 4px; font-size: 14px; }
+        .btn-success { background: var(--success); color: var(--white); padding: 8px 18px; border-radius: 6px; font-size: 14px; font-weight: 500; }
         .btn-success:disabled { background: var(--gray-300); cursor: not-allowed; }
-        .btn-default { background: var(--white); color: var(--gray-800); border: 1px solid var(--gray-300); padding: 8px 16px; border-radius: 4px; font-size: 14px; }
+        .btn-default { background: var(--white); color: var(--gray-800); border: 1px solid var(--gray-300); padding: 8px 18px; border-radius: 6px; font-size: 14px; }
 
-        .panel-body { padding: 24px; }
+        .panel-body { padding: 30px; }
         
-        .view-mode .content-block { background: var(--gray-100); padding: 16px; border-radius: var(--radius); border: 1px solid var(--gray-200); min-height: 60px; white-space: pre-wrap; margin-bottom: 20px;}
-        .section-title { font-size: 12px; text-transform: uppercase; color: var(--gray-500); font-weight: bold; margin-bottom: 8px; }
+        .view-mode .content-block { background: #fdfdfd; padding: 20px; border-radius: var(--radius); border: 1px solid var(--gray-200); min-height: 80px; white-space: pre-wrap; margin-bottom: 20px; color: #374151; line-height: 1.6;}
+        .section-title { font-size: 12px; text-transform: uppercase; color: var(--gray-500); font-weight: bold; margin-bottom: 10px; letter-spacing: 0.05em;}
 
-        .edit-mode textarea { width: 100%; min-height: 120px; padding: 12px; border: 1px solid var(--gray-300); border-radius: var(--radius); resize: vertical; margin-bottom: 20px; font-family: inherit; }
-        .edit-mode textarea:focus { outline: none; border-color: var(--primary); box-shadow: 0 0 0 2px #dbeafe; }
+        .edit-mode textarea { width: 100%; min-height: 160px; padding: 15px; border: 1px solid var(--gray-300); border-radius: var(--radius); resize: vertical; margin-bottom: 20px; font-family: inherit; font-size: 15px; }
+        .edit-mode textarea:focus { outline: none; border-color: var(--primary); box-shadow: 0 0 0 3px #dbeafe; }
         
-        .edit-actions { display: flex; justify-content: flex-end; align-items: center; gap: 10px; border-top: 1px solid var(--gray-200); padding-top: 16px; }
+        .edit-actions { display: flex; justify-content: flex-end; align-items: center; gap: 12px; border-top: 1px solid var(--gray-100); padding-top: 20px; }
 
-        .empty-state { text-align: center; padding: 40px 20px; background: #f8fafc; border: 1px dashed var(--gray-300); border-radius: var(--radius); }
+        .empty-state { text-align: center; padding: 50px 20px; background: #fafafa; border: 2px dashed var(--gray-200); border-radius: var(--radius); }
         .empty-state h3 { margin-bottom: 8px; color: var(--gray-800); }
-        .empty-state p { color: var(--gray-500); margin-bottom: 20px; font-size: 14px; }
+        .empty-state p { color: var(--gray-500); margin-bottom: 20px; }
 
-        .log-section { background: #f8fafc; border-top: 1px solid var(--gray-200); padding: 16px 24px; }
-        .log-list { list-style: none; font-size: 12px; color: var(--gray-500); }
-        .log-list li { margin-bottom: 4px; display: flex; align-items: center; }
-        .log-list li::before { content: ""; width: 6px; height: 6px; background: var(--primary); border-radius: 50%; margin-right: 8px; }
+        .log-section { background: #f9fafb; border-top: 1px solid var(--gray-200); padding: 20px 30px; }
+        .log-list { list-style: none; font-size: 13px; color: var(--gray-500); }
+        .log-list li { margin-bottom: 6px; display: flex; align-items: center; }
+        .log-list li::before { content: ""; width: 6px; height: 6px; background: var(--gray-300); border-radius: 50%; margin-right: 10px; }
 
-        .footer-action { display: flex; justify-content: flex-end; margin-top: 20px; }
-        .btn-next { background: transparent; color: var(--primary); font-size: 16px; font-weight: bold; display: flex; align-items: center; gap: 5px; }
-        .btn-next:hover { color: var(--primary-hover); }
-
+        /* 响应式适配 */
         @media (max-width: 768px) {
             .project-header { flex-direction: column; align-items: flex-start; gap: 15px; }
-            .header-right { flex-direction: column; text-align: left; gap: 5px;}
-            .stepper-container { flex-direction: column; align-items: flex-start; }
-            .step { flex-direction: row; width: 100%; margin-bottom: 0; padding: 10px 0; }
-            .step-title { margin-top: 0; margin-left: 15px; }
-            .step-line { width: 3px; height: 30px; margin: 0 0 0 18px; transform: none; flex: none; }
+            .header-right { flex-direction: column; width: 100%; text-align: left; }
+            .stepper-container { flex-direction: column; height: auto; padding: 20px 0; }
+            .step-line { width: 4px; height: 40px; margin: -2px 0; flex: none; }
+            .step-circle { width: 70px; height: 70px; }
         }
     </style>
 </head>
 <body>
 
 <div class="container">
-    <!-- 优化后的项目信息头 -->
+    <!-- 项目信息头 -->
     <div class="project-header">
         <div class="header-left">
             <h1><%= projectData.uuid || projectId %></h1>
@@ -131,21 +187,21 @@
         </div>
         <div class="header-right">
             <div class="info-badge">客户: <strong><%= projectData.customer_id || '--' %></strong></div>
-            <div class="info-badge">日期: <strong><%= projectData.order_date || '--' %></strong></div>
-            <div class="info-badge" style="<%= projectData.payment_status === '未付' ? 'color: #ef4444;' : 'color: #22c55e;' %>">
-                款项: <strong><%= projectData.payment_status || '--' %></strong>
+            <div class="info-badge">下单日期: <strong><%= projectData.order_date || '--' %></strong></div>
+            <div class="info-badge" style="<%= projectData.payment_status === '未付' ? 'color: #ef4444; background: #fef2f2;' : 'color: #16a34a; background: #f0fdf4;' %>">
+                状态: <strong><%= projectData.payment_status || '--' %></strong>
             </div>
         </div>
     </div>
 
-    <!-- 进度条容器 -->
+    <!-- 优化后的进度条容器 -->
     <div class="stepper-container" id="stepperContainer"></div>
 
-    <!-- 动态内容面板 -->
+    <!-- 内容面板 -->
     <div class="panel">
         <div class="panel-header">
-            <h2><span id="panelTitle">需求</span>阶段</h2>
-            <button id="btnEdit" class="btn-primary" onclick="enterEditMode()">记录状态</button>
+            <h2><span id="panelTitle">需求</span>阶段记录</h2>
+            <button id="btnEdit" class="btn-primary" onclick="enterEditMode()">更新此阶段状态</button>
         </div>
 
         <div class="panel-body">
@@ -153,12 +209,12 @@
             <div id="viewMode" class="view-mode">
                 <div id="emptyState" class="empty-state hidden">
                     <h3>暂无内容记录</h3>
-                    <p>当前阶段还没有添加任何描述</p>
-                    <button id="btnEmptyAdd" class="btn-primary hidden" onclick="enterEditMode()">+ 添加第一条记录</button>
+                    <p>当前阶段还没有添加任何工作描述或进度说明</p>
+                    <button id="btnEmptyAdd" class="btn-primary" onclick="enterEditMode()">+ 添加记录</button>
                 </div>
                 
                 <div id="dataDisplay">
-                    <div class="section-title">详情描述</div>
+                    <div class="section-title">详细记录</div>
                     <div id="displayText" class="content-block"></div>
                 </div>
             </div>
@@ -166,19 +222,19 @@
             <!-- 编辑模式 -->
             <div id="editMode" class="edit-mode hidden">
                 <div class="section-title">描述内容</div>
-                <textarea id="editTextArea" placeholder="请输入当前阶段的详细记录..."></textarea>
+                <textarea id="editTextArea" placeholder="请详细描述该阶段的工作进展、完成情况或需要注意的事项..."></textarea>
                 
                 <div class="edit-actions">
                     <span id="saveStatusMsg" style="color: red; font-size: 14px; margin-right: auto;"></span>
                     <button class="btn-default" onclick="exitEditMode()">取消</button>
-                    <button id="btnSave" class="btn-success" onclick="saveData()">保存并上传</button>
+                    <button id="btnSave" class="btn-success" onclick="saveData()">保存并同步</button>
                 </div>
             </div>
         </div>
 
         <!-- 日志区域 -->
         <div id="logSection" class="log-section hidden">
-            <div class="section-title">操作日志</div>
+            <div class="section-title">操作历史</div>
             <ul id="logList" class="log-list"></ul>
         </div>
     </div>
@@ -189,7 +245,6 @@
     const PROJECT_ID = '<%= projectId %>';
     const BACKEND_DATA = <%- JSON.stringify(projectData) %>;
 
-    // 去掉了角色配置，仅保留流程配置
     const STEPS_CONFIG =[
         { id: 'requirement', title: '需求' },
         { id: 'preparation', title: '准备' },
@@ -199,7 +254,6 @@
         { id: 'done', title: '完成' }
     ];
 
-    // 智能匹配：根据后端的 project_status 自动决定进度条停在第几步！
     const statusMap = { '需求': 0, '准备': 1, '生产': 2, '质检': 3, '运输': 4, '完成': 5 };
     const initialIndex = BACKEND_DATA.project_status ? (statusMap[BACKEND_DATA.project_status] || 0) : 0;
 
@@ -240,31 +294,30 @@
             const isActive = index === state.activeStepIndex;
             const hasData = state.nodesData[step.id] && state.nodesData[step.id].text !== '';
 
-            const stepDiv = document.createElement('div');
-            stepDiv.className = `step ${isActive ? 'active' : ''} ${isCompleted ? 'completed' : ''}`;
-            stepDiv.onclick = () => changeTab(index);
+            // 创建圆圈节点
+            const stepNode = document.createElement('div');
+            stepNode.className = `step-node ${isActive ? 'active' : ''} ${isCompleted ? 'completed' : ''}`;
+            stepNode.onclick = () => changeTab(index);
 
             const circle = document.createElement('div');
             circle.className = 'step-circle';
-            circle.innerText = isCompleted ? '✓' : (index + 1);
+            circle.innerText = step.title;
             
-            const title = document.createElement('div');
-            title.className = 'step-title';
-            title.innerText = step.title;
-            
+            // 如果有数据且非当前活跃项，显示提示点
             if (hasData && !isActive) {
                 const dot = document.createElement('span');
                 dot.className = 'data-dot';
-                title.appendChild(dot);
+                circle.appendChild(dot);
             }
 
-            stepDiv.appendChild(circle);
-            stepDiv.appendChild(title);
-            DOM.stepperContainer.appendChild(stepDiv);
+            stepNode.appendChild(circle);
+            DOM.stepperContainer.appendChild(stepNode);
 
+            // 创建连接线（最后一个节点后不加线）
             if (index < STEPS_CONFIG.length - 1) {
                 const line = document.createElement('div');
-                line.className = `step-line ${isCompleted ? 'completed' : ''}`;
+                // 线条变绿的逻辑：如果当前索引小于活跃索引，说明这根线连接的是两个已完成/已过阶段
+                line.className = `step-line ${index < state.activeStepIndex ? 'completed' : ''}`;
                 DOM.stepperContainer.appendChild(line);
             }
         });
@@ -278,7 +331,6 @@
 
         if (state.isEditing) {
             DOM.btnEdit.classList.add('hidden');
-            DOM.btnEmptyAdd.classList.add('hidden');
             DOM.viewMode.classList.add('hidden');
             DOM.editMode.classList.remove('hidden');
             DOM.logSection.classList.add('hidden');
@@ -286,11 +338,10 @@
             DOM.saveStatusMsg.innerText = ''; 
         } else {
             DOM.btnEdit.classList.remove('hidden');
-            DOM.btnEmptyAdd.classList.remove('hidden');
             DOM.editMode.classList.add('hidden');
             DOM.viewMode.classList.remove('hidden');
 
-            if (currentData.text === '') {
+            if (currentData.text.trim() === '') {
                 DOM.emptyState.classList.remove('hidden');
                 DOM.dataDisplay.classList.add('hidden');
             } else {
@@ -340,12 +391,9 @@
         }
 
         DOM.btnSave.disabled = true;
-        DOM.btnSave.innerText = "正在保存...";
-        DOM.saveStatusMsg.innerText = "";
-        DOM.saveStatusMsg.style.color = "#2563eb"; 
+        DOM.btnSave.innerText = "同步中...";
 
         try {
-            // 注意：提交时去除了 role 参数，增加了操作节点和状态
             const res = await fetch('/api/upload', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
@@ -366,8 +414,8 @@
                 state.nodesData[currentStepId].text = newText;
 
                 const now = new Date().toLocaleString('zh-CN');
-                const logMsg = `操作员 于 ${now} 进行了状态更新`;
-                state.nodesData[currentStepId].logs.push(logMsg);
+                const logMsg = `更新于 ${now}`;
+                state.nodesData[currentStepId].logs.unshift(logMsg); // 最新日志排在前
 
                 state.isEditing = false;
                 updateUI();
@@ -377,10 +425,10 @@
         } catch (error) {
             console.error(error);
             DOM.saveStatusMsg.style.color = "red";
-            DOM.saveStatusMsg.innerText = "保存失败：" + error.message;
+            DOM.saveStatusMsg.innerText = "错误：" + error.message;
         } finally {
             DOM.btnSave.disabled = false;
-            DOM.btnSave.innerText = "保存并上传";
+            DOM.btnSave.innerText = "保存并同步";
         }
     }
 
