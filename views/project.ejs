@@ -5,6 +5,11 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>项目跟踪 - <%= projectId %></title>
     
+    <!-- 引入 Tippy.js (用于定位斜杠菜单) -->
+    <script src="https://unpkg.com/@popperjs/core@2"></script>
+    <script src="https://unpkg.com/tippy.js@6"></script>
+    <link rel="stylesheet" href="https://unpkg.com/tippy.js@6/dist/svg-arrow.css">
+
     <style>
         :root {
             --primary: #aa0000;       
@@ -48,45 +53,55 @@
 
         /* ================= Tiptap 编辑器样式 ================= */
         .main-panel { background: var(--white); border-radius: var(--radius); box-shadow: 0 4px 20px rgba(0,0,0,0.05); overflow: hidden; }
+        .editor-container { padding: 40px; min-height: 300px; position: relative; }
         
-        .editor-container { padding: 40px; min-height: 200px; position: relative; }
+        .ProseMirror { outline: none; min-height: 200px; font-size: 16px; color: #374151; }
+        .ProseMirror p.is-editor-empty:first-child::before { content: attr(data-placeholder); float: left; color: #adb5bd; pointer-events: none; height: 0; }
         
-        /* Tiptap 核心内容区域 */
-        .ProseMirror { 
-            outline: none; min-height: 150px; font-size: 16px; color: #374151; 
-        }
-        .ProseMirror p.is-editor-empty:first-child::before {
-            content: attr(data-placeholder); float: left; color: #adb5bd; pointer-events: none; height: 0;
-        }
-        .ProseMirror h2 { font-size: 1.5em; margin: 1em 0 0.5em; color: var(--primary); }
+        /* 编辑器内元素样式 */
+        .ProseMirror h1 { font-size: 1.8em; margin: 1em 0 0.5em; }
+        .ProseMirror h2 { font-size: 1.5em; margin: 1em 0 0.5em; }
         .ProseMirror ul, .ProseMirror ol { padding-left: 1.5em; margin: 0.5em 0; }
         .ProseMirror blockquote { border-left: 3px solid var(--primary); padding-left: 1em; color: var(--gray-500); font-style: italic; }
+        .ProseMirror hr { border: none; border-top: 2px solid var(--gray-100); margin: 2em 0; }
+        
+        /* 任务列表样式 (TaskList) */
+        .ProseMirror ul[data-type="taskList"] { list-style: none; padding: 0; }
+        .ProseMirror ul[data-type="taskList"] li { display: flex; align-items: flex-start; margin-bottom: 0.5em; }
+        .ProseMirror ul[data-type="taskList"] label { margin-right: 0.5em; user-select: none; }
+        .ProseMirror ul[data-type="taskList"] input[type="checkbox"] { width: 1.2em; height: 1.2em; cursor: pointer; margin-top: 0.2em; }
 
-        /* 浮动菜单 & 气泡菜单按钮 */
-        .menu-bar { display: flex; background: #333; padding: 5px; border-radius: 6px; gap: 2px; }
-        .menu-bar button { 
-            background: transparent; color: white; padding: 4px 8px; font-size: 12px; border-radius: 4px; 
+        /* ================= 斜杠菜单 & 气泡菜单 UI ================= */
+        .menu-dropdown { 
+            background: #ffffff; border: 1px solid var(--gray-200); border-radius: 8px; 
+            box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1); padding: 6px; 
+            display: flex; flex-direction: column; width: 180px; z-index: 1000;
         }
-        .menu-bar button:hover, .menu-bar button.is-active { background: var(--primary); }
+        .menu-item { 
+            background: transparent; text-align: left; padding: 8px 12px; font-size: 13px; 
+            border-radius: 5px; display: flex; align-items: center; gap: 10px; color: #333;
+        }
+        .menu-item:hover { background: var(--gray-100); }
+        .menu-item .icon { width: 16px; font-weight: bold; color: var(--primary); }
+
+        .bubble-menu { 
+            background: #1f2937; color: white; border-radius: 6px; display: flex; padding: 4px; gap: 2px;
+        }
+        .bubble-menu button { background: transparent; color: white; padding: 4px 8px; border-radius: 4px; font-size: 12px; }
+        .bubble-menu button:hover { background: #374151; }
+        .bubble-menu button.is-active { background: var(--primary); }
 
         .editor-footer { padding: 15px 40px; border-top: 1px solid var(--gray-100); display: flex; justify-content: flex-end; }
         .btn-submit { background: var(--primary); color: #fff; padding: 10px 24px; border-radius: 6px; font-weight: bold; }
 
-        /* ================= 时间线记录区 ================= */
+        /* 时间线记录区样式保持一致 */
         .history-section { padding: 40px; background: #fafafa; }
         .timeline { position: relative; padding-left: 40px; }
         .timeline::before { content: ""; position: absolute; left: 7px; top: 5px; bottom: 0; width: 2px; background: var(--gray-200); }
         .timeline-item { position: relative; margin-bottom: 40px; }
         .timeline-dot { position: absolute; left: -40px; top: 6px; width: 16px; height: 16px; border-radius: 50%; background: var(--white); border: 3px solid var(--primary); z-index: 2; }
         .timeline-time { font-size: 12px; color: var(--gray-400); margin-bottom: 8px; font-weight: bold; }
-        .timeline-content { 
-            background: var(--white); padding: 20px; border-radius: 10px; border: 1px solid var(--gray-100); 
-            font-size: 15px; line-height: 1.6;
-        }
-        /* 时间线内部 HTML 样式 */
-        .timeline-content h2 { font-size: 1.2em; color: var(--primary); }
-        .timeline-content ul { padding-left: 1.2em; }
-
+        .timeline-content { background: var(--white); padding: 20px; border-radius: 10px; border: 1px solid var(--gray-100); line-height: 1.6; }
     </style>
 </head>
 <body>
@@ -94,36 +109,38 @@
 <div class="container">
     <div class="project-header">
         <div class="header-left">
-            <h1><%= projectId %> - <span id="currentStepName">需求</span></h1>
+            <h1>跟踪项目: <span id="currentStepName">需求</span></h1>
         </div>
-        <div class="info-badge">客户: <strong><%= projectData.customer_id || '--' %></strong></div>
+        <div class="info-badge">UUID: <strong><%= projectId %></strong></div>
     </div>
 
-    <!-- 8px 进度条 -->
     <div class="stepper-container" id="stepperContainer"></div>
 
     <div class="main-panel">
         <div class="editor-container">
-            <!-- 气泡菜单 (选中文字时显示) -->
-            <div id="bubble-menu" class="menu-bar" style="visibility: hidden;">
-                <button onclick="window.editor.chain().focus().toggleBold().run()">B</button>
-                <button onclick="window.editor.chain().focus().toggleItalic().run()">I</button>
-                <button onclick="window.editor.chain().focus().toggleStrike().run()">S</button>
+            <!-- 气泡菜单 (选中文本显示) -->
+            <div id="bubble-menu" class="bubble-menu" style="display: none;">
+                <button onclick="window.editor.chain().focus().toggleBold().run()">加粗</button>
+                <button onclick="window.editor.chain().focus().toggleItalic().run()">斜体</button>
+                <button onclick="window.editor.chain().focus().toggleStrike().run()">删除线</button>
+                <button onclick="window.editor.chain().focus().toggleCode().run()">代码</button>
             </div>
 
-            <!-- 浮动菜单 (新行开头显示) -->
-            <div id="floating-menu" class="menu-bar" style="visibility: hidden;">
-                <button onclick="window.editor.chain().focus().toggleHeading({ level: 2 }).run()">H2</button>
-                <button onclick="window.editor.chain().focus().toggleBulletList().run()">• List</button>
-                <button onclick="window.editor.chain().focus().toggleBlockquote().run()">“ Quote</button>
+            <!-- 斜杠菜单列表 (隐藏模板) -->
+            <div id="slash-menu" class="menu-dropdown" style="display: none;">
+                <button class="menu-item" onclick="execCmd('h1')"><span class="icon">H1</span> 大标题</button>
+                <button class="menu-item" onclick="execCmd('h2')"><span class="icon">H2</span> 中标题</button>
+                <button class="menu-item" onclick="execCmd('ul')"><span class="icon">•</span> 无序列表</button>
+                <button class="menu-item" onclick="execCmd('tl')"><span class="icon">☑</span> 任务列表</button>
+                <button class="menu-item" onclick="execCmd('quote')"><span class="icon">“</span> 引用</button>
+                <button class="menu-item" onclick="execCmd('hr')"><span class="icon">—</span> 分割线</button>
             </div>
 
-            <!-- Tiptap 编辑器挂载点 -->
             <div id="editor"></div>
         </div>
 
         <div class="editor-footer">
-            <button class="btn-submit" id="submitBtn">发布记录</button>
+            <button class="btn-submit" id="submitBtn">保存当前记录</button>
         </div>
 
         <div class="history-section">
@@ -132,64 +149,116 @@
     </div>
 </div>
 
-<!-- 引入 Tiptap (使用 ESM 加载方式) -->
 <script type="module">
-    import { Editor } from 'https://esm.sh/@tiptap/core'
+    import { Editor, Extension } from 'https://esm.sh/@tiptap/core'
     import StarterKit from 'https://esm.sh/@tiptap/starter-kit'
     import Placeholder from 'https://esm.sh/@tiptap/extension-placeholder'
     import BubbleMenu from 'https://esm.sh/@tiptap/extension-bubble-menu'
-    import FloatingMenu from 'https://esm.sh/@tiptap/extension-floating-menu'
+    import TaskList from 'https://esm.sh/@tiptap/extension-task-list'
+    import TaskItem from 'https://esm.sh/@tiptap/extension-task-item'
+
+    // 自定义扩展：监控 "/" 输入
+    const SlashHandler = Extension.create({
+        name: 'slashHandler',
+        addKeyboardShortcuts() {
+            return {
+                '/': () => {
+                    this.options.onOpen();
+                    return false; // 继续输入 /
+                },
+            }
+        }
+    });
 
     const PROJECT_ID = '<%= projectId %>';
     const BACKEND_DATA = <%- JSON.stringify(projectData) %>;
-    
-    const STEPS_CONFIG =[
-        { id: 'requirement', title: '需求' }, { id: 'preparation', title: '准备' },
-        { id: 'production', title: '生产' }, { id: 'qa', title: '质检' },
-        { id: 'transport', title: '运输' }, { id: 'done', title: '完成' }
-    ];
-
     const statusMap = { '需求': 0, '准备': 1, '生产': 2, '质检': 3, '运输': 4, '完成': 5 };
+
     let state = {
         activeStepIndex: BACKEND_DATA.project_status ? (statusMap[BACKEND_DATA.project_status] || 0) : 0,
         nodesData: BACKEND_DATA.nodesData || {}
     };
 
-    // 初始化 Tiptap
+    // 初始化 Tippy 用于弹出菜单
+    let slashInstance = tippy('body', {
+        content: document.querySelector('#slash-menu'),
+        allowHTML: true,
+        interactive: true,
+        trigger: 'manual',
+        placement: 'bottom-start',
+        theme: 'light',
+        animation: 'shift-away',
+        arrow: false,
+        onHide(instance) {
+            instance.disable();
+        }
+    })[0];
+
+    // 初始化编辑器
     window.editor = new Editor({
         element: document.querySelector('#editor'),
         extensions: [
             StarterKit,
-            Placeholder.configure({
-                placeholder: "输入 '/' 快速开始...",
-            }),
-            BubbleMenu.configure({
-                element: document.querySelector('#bubble-menu'),
-            }),
-            FloatingMenu.configure({
-                element: document.querySelector('#floating-menu'),
-            }),
+            TaskList,
+            TaskItem.configure({ nested: true }),
+            Placeholder.configure({ placeholder: "输入 '/' 调出功能菜单..." }),
+            BubbleMenu.configure({ element: document.querySelector('#bubble-menu') }),
+            SlashHandler.configure({
+                onOpen: () => {
+                    // 获取光标位置并显示菜单
+                    const { view } = window.editor;
+                    const { selection } = view.state;
+                    const coords = view.coordsAtPos(selection.from);
+                    
+                    slashInstance.setProps({
+                        getReferenceClientRect: () => new DOMRect(coords.left, coords.top, 0, 0),
+                    });
+                    slashInstance.enable();
+                    slashInstance.show();
+                }
+            })
         ],
-        content: '',
-        autofocus: true,
-    })
+        onUpdate: () => {
+            // 如果删除了 / 则自动关闭菜单
+            const text = window.editor.getText();
+            if (!text.includes('/')) slashInstance.hide();
+        }
+    });
 
+    // 暴露给全局点击
+    window.execCmd = (type) => {
+        const chain = window.editor.chain().focus();
+        // 删除刚刚输入的 /
+        chain.deleteRange({ from: window.editor.state.selection.from - 1, to: window.editor.state.selection.from }).run();
+
+        switch(type) {
+            case 'h1': chain.toggleHeading({ level: 1 }).run(); break;
+            case 'h2': chain.toggleHeading({ level: 2 }).run(); break;
+            case 'ul': chain.toggleBulletList().run(); break;
+            case 'tl': chain.toggleTaskList().run(); break;
+            case 'quote': chain.toggleBlockquote().run(); break;
+            case 'hr': chain.setHorizontalRule().run(); break;
+        }
+        slashInstance.hide();
+    };
+
+    // 渲染进度条
     function renderStepper() {
         const container = document.getElementById('stepperContainer');
         container.innerHTML = '';
-        STEPS_CONFIG.forEach((step, index) => {
+        const steps = ['需求', '准备', '生产', '质检', '运输', '完成'];
+        steps.forEach((title, index) => {
+            const stepId = ['requirement', 'preparation', 'production', 'qa', 'transport', 'done'][index];
             const isCompleted = index < state.activeStepIndex;
             const isActive = index === state.activeStepIndex;
+            
             const node = document.createElement('div');
             node.className = `step-node ${isActive ? 'active' : ''} ${isCompleted ? 'completed' : ''}`;
-            node.innerHTML = `<div class="step-oval">${step.title}</div>`;
-            node.onclick = () => {
-                state.activeStepIndex = index;
-                renderStepper();
-                renderTimeline();
-            };
+            node.innerHTML = `<div class="step-oval">${title}</div>`;
+            node.onclick = () => { state.activeStepIndex = index; renderStepper(); renderTimeline(); };
             container.appendChild(node);
-            if (index < STEPS_CONFIG.length - 1) {
+
+            if (index < steps.length - 1) {
                 const line = document.createElement('div');
                 line.className = `step-line ${index < state.activeStepIndex ? 'completed' : ''}`;
                 container.appendChild(line);
@@ -197,51 +266,38 @@
         });
     }
 
+    // 渲染时间线（带防御性逻辑）
     function renderTimeline() {
-        const stepId = STEPS_CONFIG[state.activeStepIndex].id;
-        document.getElementById('currentStepName').innerText = STEPS_CONFIG[state.activeStepIndex].title;
+        const steps = ['requirement', 'preparation', 'production', 'qa', 'transport', 'done'];
+        const stepId = steps[state.activeStepIndex];
+        document.getElementById('currentStepName').innerText = ['需求', '准备', '生产', '质检', '运输', '完成'][state.activeStepIndex];
         
-        // --- 修复逻辑开始 ---
-        let records = state.nodesData[stepId];
-    
-        // 1. 如果数据不存在，设为空数组
-        if (!records) {
-            records = [];
-        } 
-        // 2. 如果数据存在但不是数组（兼容旧版数据格式格式）
-        else if (!Array.isArray(records)) {
-            // 如果旧数据是 { text: '...' } 这种对象格式，将其转为新版的数组格式
-            if (typeof records === 'object' && records.text) {
-                records = [{ time: '历史数据', html: records.text }];
-            } else {
-                records = [];
-            }
+        let records = state.nodesData[stepId] || [];
+        if (!Array.isArray(records)) {
+            records = (typeof records === 'object' && records.text) ? [{time: '历史数据', html: records.text}] : [];
         }
-        // --- 修复逻辑结束 ---
-    
+
         const container = document.getElementById('timelineContainer');
-        
         if (records.length === 0) {
-            container.innerHTML = `<div style="text-align:center; color:#ccc; padding:40px;">暂无该阶段的更新记录</div>`;
+            container.innerHTML = `<p style="text-align:center; color:#ccc; padding:20px;">暂无该阶段记录</p>`;
             return;
         }
-    
-        // 现在可以安全地使用 [...records] 了
+
         container.innerHTML = [...records].reverse().map(item => `
             <div class="timeline-item">
                 <div class="timeline-dot"></div>
-                <div class="timeline-time">${item.time || '未知时间'}</div>
-                <div class="timeline-content">${item.html || item.text || ''}</div>
+                <div class="timeline-time">${item.time || '记录日期'}</div>
+                <div class="timeline-content">${item.html || ''}</div>
             </div>
         `).join('');
     }
 
-    // 提交记录
+    // 提交逻辑
     document.getElementById('submitBtn').addEventListener('click', async () => {
+        if (window.editor.isEmpty) return alert("内容为空");
         const html = window.editor.getHTML();
-        if (window.editor.isEmpty) return alert("内容不能为空");
-
-        const stepId = STEPS_CONFIG[state.activeStepIndex].id;
+        const steps = ['requirement', 'preparation', 'production', 'qa', 'transport', 'done'];
+        const stepId = steps[state.activeStepIndex];
         const time = new Date().toLocaleString();
 
         try {
@@ -257,9 +313,7 @@
                 window.editor.commands.clearContent();
                 renderTimeline();
             }
-        } catch (e) {
-            alert("提交异常");
-        }
+        } catch (e) { alert("网络异常"); }
     });
 
     renderStepper();
