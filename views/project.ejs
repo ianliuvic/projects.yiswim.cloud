@@ -5,10 +5,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>项目跟踪 - <%= projectId %></title>
     
-    <!-- 引入 Tippy.js (用于定位斜杠菜单) -->
-    <script src="https://unpkg.com/@popperjs/core@2"></script>
-    <script src="https://unpkg.com/tippy.js@6"></script>
-    <link rel="stylesheet" href="https://unpkg.com/tippy.js@6/dist/svg-arrow.css">
+    <!-- 1. 引入 Quill 核心样式 -->
+    <link href="https://cdn.quilljs.com/1.3.6/quill.snow.css" rel="stylesheet">
 
     <style>
         :root {
@@ -17,6 +15,7 @@
             --gray-100: #f3f4f6;
             --gray-200: #e5e7eb;
             --gray-300: #d1d5db;
+            --gray-400: #9ca3af;
             --gray-500: #6b7280;
             --gray-800: #1f2937;
             --bg-color: #f8f9fa;
@@ -51,48 +50,35 @@
         .step-line { flex: 1; height: 8px; background-color: var(--gray-200); z-index: 1; border-radius: 4px; margin: 0 -1px; }
         .step-line.completed { background-color: var(--primary); }
 
-        /* ================= Tiptap 编辑器样式 ================= */
+        /* ================= UI / 主体区域 ================= */
         .main-panel { background: var(--white); border-radius: var(--radius); box-shadow: 0 4px 20px rgba(0,0,0,0.05); overflow: hidden; }
-        .editor-container { padding: 40px; min-height: 300px; position: relative; }
+        .editor-container { position: relative; }
         
-        .ProseMirror { outline: none; min-height: 200px; font-size: 16px; color: #374151; }
-        .ProseMirror p.is-editor-empty:first-child::before { content: attr(data-placeholder); float: left; color: #adb5bd; pointer-events: none; height: 0; }
+        /* ================= Quill 定制样式，融入原 UI ================= */
+        .ql-toolbar.ql-snow { 
+            border: none; 
+            border-bottom: 1px solid var(--gray-200); 
+            background: #fafafa; 
+            padding: 12px 40px; 
+        }
+        .ql-container.ql-snow { border: none; font-family: inherit; }
+        .ql-editor { 
+            min-height: 250px; 
+            padding: 30px 40px; 
+            font-size: 16px; 
+            color: #374151; 
+            line-height: 1.7;
+        }
+        .ql-editor.ql-blank::before { left: 40px; right: 40px; font-style: normal; color: #adb5bd; }
         
-        /* 编辑器内元素样式 */
-        .ProseMirror h1 { font-size: 1.8em; margin: 1em 0 0.5em; }
-        .ProseMirror h2 { font-size: 1.5em; margin: 1em 0 0.5em; }
-        .ProseMirror ul, .ProseMirror ol { padding-left: 1.5em; margin: 0.5em 0; }
-        .ProseMirror blockquote { border-left: 3px solid var(--primary); padding-left: 1em; color: var(--gray-500); font-style: italic; }
-        .ProseMirror hr { border: none; border-top: 2px solid var(--gray-100); margin: 2em 0; }
-        
-        /* 任务列表样式 (TaskList) */
-        .ProseMirror ul[data-type="taskList"] { list-style: none; padding: 0; }
-        .ProseMirror ul[data-type="taskList"] li { display: flex; align-items: flex-start; margin-bottom: 0.5em; }
-        .ProseMirror ul[data-type="taskList"] label { margin-right: 0.5em; user-select: none; }
-        .ProseMirror ul[data-type="taskList"] input[type="checkbox"] { width: 1.2em; height: 1.2em; cursor: pointer; margin-top: 0.2em; }
-
-        /* ================= 斜杠菜单 & 气泡菜单 UI ================= */
-        .menu-dropdown { 
-            background: #ffffff; border: 1px solid var(--gray-200); border-radius: 8px; 
-            box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1); padding: 6px; 
-            display: flex; flex-direction: column; width: 180px; z-index: 1000;
-        }
-        .menu-item { 
-            background: transparent; text-align: left; padding: 8px 12px; font-size: 13px; 
-            border-radius: 5px; display: flex; align-items: center; gap: 10px; color: #333;
-        }
-        .menu-item:hover { background: var(--gray-100); }
-        .menu-item .icon { width: 16px; font-weight: bold; color: var(--primary); }
-
-        .bubble-menu { 
-            background: #1f2937; color: white; border-radius: 6px; display: flex; padding: 4px; gap: 2px;
-        }
-        .bubble-menu button { background: transparent; color: white; padding: 4px 8px; border-radius: 4px; font-size: 12px; }
-        .bubble-menu button:hover { background: #374151; }
-        .bubble-menu button.is-active { background: var(--primary); }
+        /* 针对 Quill 编辑器内元素的优化 */
+        .ql-editor h1 { font-size: 1.8em; margin: 0.5em 0; }
+        .ql-editor h2 { font-size: 1.5em; margin: 0.5em 0; }
+        .ql-editor blockquote { border-left: 3px solid var(--primary); color: var(--gray-500); padding-left: 1em; font-style: italic; }
 
         .editor-footer { padding: 15px 40px; border-top: 1px solid var(--gray-100); display: flex; justify-content: flex-end; }
         .btn-submit { background: var(--primary); color: #fff; padding: 10px 24px; border-radius: 6px; font-weight: bold; }
+        .btn-submit:hover { background: var(--primary-hover); }
 
         /* 时间线记录区样式保持一致 */
         .history-section { padding: 40px; background: #fafafa; }
@@ -102,6 +88,8 @@
         .timeline-dot { position: absolute; left: -40px; top: 6px; width: 16px; height: 16px; border-radius: 50%; background: var(--white); border: 3px solid var(--primary); z-index: 2; }
         .timeline-time { font-size: 12px; color: var(--gray-400); margin-bottom: 8px; font-weight: bold; }
         .timeline-content { background: var(--white); padding: 20px; border-radius: 10px; border: 1px solid var(--gray-100); line-height: 1.6; }
+        /* 约束时间线内部图片的尺寸，防止历史图片撑破布局 */
+        .timeline-content img { max-width: 100%; height: auto; }
     </style>
 </head>
 <body>
@@ -117,25 +105,8 @@
     <div class="stepper-container" id="stepperContainer"></div>
 
     <div class="main-panel">
+        <!-- Quill 编辑器容器 -->
         <div class="editor-container">
-            <!-- 气泡菜单 (选中文本显示) -->
-            <div id="bubble-menu" class="bubble-menu" style="display: none;">
-                <button onclick="window.editor.chain().focus().toggleBold().run()">加粗</button>
-                <button onclick="window.editor.chain().focus().toggleItalic().run()">斜体</button>
-                <button onclick="window.editor.chain().focus().toggleStrike().run()">删除线</button>
-                <button onclick="window.editor.chain().focus().toggleCode().run()">代码</button>
-            </div>
-
-            <!-- 斜杠菜单列表 (隐藏模板) -->
-            <div id="slash-menu" class="menu-dropdown" style="display: none;">
-                <button class="menu-item" onclick="execCmd('h1')"><span class="icon">H1</span> 大标题</button>
-                <button class="menu-item" onclick="execCmd('h2')"><span class="icon">H2</span> 中标题</button>
-                <button class="menu-item" onclick="execCmd('ul')"><span class="icon">•</span> 无序列表</button>
-                <button class="menu-item" onclick="execCmd('tl')"><span class="icon">☑</span> 任务列表</button>
-                <button class="menu-item" onclick="execCmd('quote')"><span class="icon">“</span> 引用</button>
-                <button class="menu-item" onclick="execCmd('hr')"><span class="icon">—</span> 分割线</button>
-            </div>
-
             <div id="editor"></div>
         </div>
 
@@ -149,27 +120,12 @@
     </div>
 </div>
 
-<script type="module">
-    import { Editor, Extension } from 'https://esm.sh/@tiptap/core'
-    import StarterKit from 'https://esm.sh/@tiptap/starter-kit'
-    import Placeholder from 'https://esm.sh/@tiptap/extension-placeholder'
-    import BubbleMenu from 'https://esm.sh/@tiptap/extension-bubble-menu'
-    import TaskList from 'https://esm.sh/@tiptap/extension-task-list'
-    import TaskItem from 'https://esm.sh/@tiptap/extension-task-item'
+<!-- 2. 引入 Quill 核心 JS -->
+<script src="https://cdn.quilljs.com/1.3.6/quill.min.js"></script>
+<!-- 3. 引入 图片缩放插件 (必须在 Quill 之后引入) -->
+<script src="https://cdn.jsdelivr.net/npm/quill-image-resize-module@3.0.0/image-resize.min.js"></script>
 
-    // 自定义扩展：监控 "/" 输入
-    const SlashHandler = Extension.create({
-        name: 'slashHandler',
-        addKeyboardShortcuts() {
-            return {
-                '/': () => {
-                    this.options.onOpen();
-                    return false; // 继续输入 /
-                },
-            }
-        }
-    });
-
+<script>
     const PROJECT_ID = '<%= projectId %>';
     const BACKEND_DATA = <%- JSON.stringify(projectData) %>;
     const statusMap = { '需求': 0, '准备': 1, '生产': 2, '质检': 3, '运输': 4, '完成': 5 };
@@ -179,76 +135,34 @@
         nodesData: BACKEND_DATA.nodesData || {}
     };
 
-    // 初始化 Tippy 用于弹出菜单
-    let slashInstance = tippy('body', {
-        content: document.querySelector('#slash-menu'),
-        allowHTML: true,
-        interactive: true,
-        trigger: 'manual',
-        placement: 'bottom-start',
-        theme: 'light',
-        animation: 'shift-away',
-        arrow: false,
-        onHide(instance) {
-            instance.disable();
-        }
-    })[0];
-
-    // 初始化编辑器
-    window.editor = new Editor({
-        element: document.querySelector('#editor'),
-        extensions: [
-            StarterKit,
-            TaskList,
-            TaskItem.configure({ nested: true }),
-            Placeholder.configure({ placeholder: "输入 '/' 调出功能菜单..." }),
-            BubbleMenu.configure({ element: document.querySelector('#bubble-menu') }),
-            SlashHandler.configure({
-                onOpen: () => {
-                    // 获取光标位置并显示菜单
-                    const { view } = window.editor;
-                    const { selection } = view.state;
-                    const coords = view.coordsAtPos(selection.from);
-                    
-                    slashInstance.setProps({
-                        getReferenceClientRect: () => new DOMRect(coords.left, coords.top, 0, 0),
-                    });
-                    slashInstance.enable();
-                    slashInstance.show();
-                }
-            })
-        ],
-        onUpdate: () => {
-            // 如果删除了 / 则自动关闭菜单
-            const text = window.editor.getText();
-            if (!text.includes('/')) slashInstance.hide();
+    // 初始化 Quill 编辑器
+    var quill = new Quill('#editor', {
+        theme: 'snow',
+        placeholder: '在此输入工作记录，支持直接粘贴或拖拽图片...',
+        modules: {
+            // 配置顶部工具栏
+            toolbar: [
+                [{ 'header':[1, 2, false] }],
+                ['bold', 'italic', 'underline', 'strike'],[{ 'list': 'ordered'}, { 'list': 'bullet' }],
+                ['blockquote', 'code-block'],
+                ['image', 'link', 'video'],
+                ['clean']
+            ],
+            // 启用图片缩放模块
+            imageResize: {
+                displaySize: true, 
+                modules:[ 'Resize', 'DisplaySize', 'Toolbar' ]
+            }
         }
     });
-
-    // 暴露给全局点击
-    window.execCmd = (type) => {
-        const chain = window.editor.chain().focus();
-        // 删除刚刚输入的 /
-        chain.deleteRange({ from: window.editor.state.selection.from - 1, to: window.editor.state.selection.from }).run();
-
-        switch(type) {
-            case 'h1': chain.toggleHeading({ level: 1 }).run(); break;
-            case 'h2': chain.toggleHeading({ level: 2 }).run(); break;
-            case 'ul': chain.toggleBulletList().run(); break;
-            case 'tl': chain.toggleTaskList().run(); break;
-            case 'quote': chain.toggleBlockquote().run(); break;
-            case 'hr': chain.setHorizontalRule().run(); break;
-        }
-        slashInstance.hide();
-    };
 
     // 渲染进度条
     function renderStepper() {
         const container = document.getElementById('stepperContainer');
         container.innerHTML = '';
-        const steps = ['需求', '准备', '生产', '质检', '运输', '完成'];
+        const steps =['需求', '准备', '生产', '质检', '运输', '完成'];
         steps.forEach((title, index) => {
-            const stepId = ['requirement', 'preparation', 'production', 'qa', 'transport', 'done'][index];
+            const stepId =['requirement', 'preparation', 'production', 'qa', 'transport', 'done'][index];
             const isCompleted = index < state.activeStepIndex;
             const isActive = index === state.activeStepIndex;
             
@@ -268,13 +182,13 @@
 
     // 渲染时间线（带防御性逻辑）
     function renderTimeline() {
-        const steps = ['requirement', 'preparation', 'production', 'qa', 'transport', 'done'];
+        const steps =['requirement', 'preparation', 'production', 'qa', 'transport', 'done'];
         const stepId = steps[state.activeStepIndex];
-        document.getElementById('currentStepName').innerText = ['需求', '准备', '生产', '质检', '运输', '完成'][state.activeStepIndex];
+        document.getElementById('currentStepName').innerText =['需求', '准备', '生产', '质检', '运输', '完成'][state.activeStepIndex];
         
-        let records = state.nodesData[stepId] || [];
+        let records = state.nodesData[stepId] ||[];
         if (!Array.isArray(records)) {
-            records = (typeof records === 'object' && records.text) ? [{time: '历史数据', html: records.text}] : [];
+            records = (typeof records === 'object' && records.text) ? [{time: '历史数据', html: records.text}] :[];
         }
 
         const container = document.getElementById('timelineContainer');
@@ -283,7 +197,7 @@
             return;
         }
 
-        container.innerHTML = [...records].reverse().map(item => `
+        container.innerHTML =[...records].reverse().map(item => `
             <div class="timeline-item">
                 <div class="timeline-dot"></div>
                 <div class="timeline-time">${item.time || '记录日期'}</div>
@@ -292,11 +206,16 @@
         `).join('');
     }
 
-    // 提交逻辑
+    // 提交逻辑 (改为获取 Quill 的内容)
     document.getElementById('submitBtn').addEventListener('click', async () => {
-        if (window.editor.isEmpty) return alert("内容为空");
-        const html = window.editor.getHTML();
-        const steps = ['requirement', 'preparation', 'production', 'qa', 'transport', 'done'];
+        // 判断 Quill 是否为空（长度只有1，且没有插入图片等元素）
+        if (quill.getLength() <= 1 && !quill.root.innerHTML.includes('<img')) {
+            return alert("内容为空");
+        }
+
+        // 获取带格式的 HTML 代码
+        const html = quill.root.innerHTML;
+        const steps =['requirement', 'preparation', 'production', 'qa', 'transport', 'done'];
         const stepId = steps[state.activeStepIndex];
         const time = new Date().toLocaleString();
 
@@ -308,9 +227,12 @@
             });
             const result = await res.json();
             if (result.success) {
-                if (!state.nodesData[stepId]) state.nodesData[stepId] = [];
+                if (!state.nodesData[stepId]) state.nodesData[stepId] =[];
                 state.nodesData[stepId].push({ time, html });
-                window.editor.commands.clearContent();
+                
+                // 提交成功后清空编辑器
+                quill.setContents([{ insert: '\n' }]);
+                
                 renderTimeline();
             }
         } catch (e) { alert("网络异常"); }
