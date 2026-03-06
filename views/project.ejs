@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>项目跟踪 - <%= projectId %></title>
     
-    <!-- 1. 引入 Quill 核心样式 -->
+    <!-- 引入 Quill 核心样式 -->
     <link href="https://cdn.quilljs.com/1.3.6/quill.snow.css" rel="stylesheet">
 
     <style>
@@ -37,7 +37,7 @@
         .header-left h1 { color: var(--gray-800); font-size: 20px; }
         .info-badge { background: var(--gray-100); padding: 8px 14px; border-radius: 6px; font-size: 13px; color: var(--gray-500); }
 
-        /* ================= 8px 进度条 ================= */
+        /* ================= 进度条 ================= */
         .stepper-container { display: flex; align-items: center; justify-content: space-between; margin: 40px 0; }
         .step-node { display: flex; align-items: center; z-index: 2; cursor: pointer; }
         .step-oval { 
@@ -47,7 +47,8 @@
         }
         .step-node.active .step-oval { background-color: var(--primary); border-color: var(--primary); color: var(--white); }
         .step-node.completed .step-oval { background-color: var(--white); border-color: var(--primary); color: var(--primary); }
-        .step-line { flex: 1; height: 8px; background-color: var(--gray-200); z-index: 1; border-radius: 4px; margin: 0 -1px; }
+        /* 去掉了 border-radius */
+        .step-line { flex: 1; height: 8px; background-color: var(--gray-200); z-index: 1; margin: 0 -1px; }
         .step-line.completed { background-color: var(--primary); }
 
         /* ================= UI / 主体区域 ================= */
@@ -55,40 +56,39 @@
         .editor-container { position: relative; }
         
         /* ================= Quill 定制样式，融入原 UI ================= */
-        .ql-toolbar.ql-snow { 
-            border: none; 
-            border-bottom: 1px solid var(--gray-200); 
-            background: #fafafa; 
-            padding: 12px 40px; 
-        }
+        .ql-toolbar.ql-snow { border: none; border-bottom: 1px solid var(--gray-200); background: #fafafa; padding: 12px 40px; }
         .ql-container.ql-snow { border: none; font-family: inherit; }
-        .ql-editor { 
-            min-height: 250px; 
-            padding: 30px 40px; 
-            font-size: 16px; 
-            color: #374151; 
-            line-height: 1.7;
-        }
+        .ql-editor { min-height: 250px; padding: 30px 40px; font-size: 16px; color: #374151; line-height: 1.7; }
         .ql-editor.ql-blank::before { left: 40px; right: 40px; font-style: normal; color: #adb5bd; }
-        
-        /* 针对 Quill 编辑器内元素的优化 */
         .ql-editor h1 { font-size: 1.8em; margin: 0.5em 0; }
         .ql-editor h2 { font-size: 1.5em; margin: 0.5em 0; }
         .ql-editor blockquote { border-left: 3px solid var(--primary); color: var(--gray-500); padding-left: 1em; font-style: italic; }
 
-        .editor-footer { padding: 15px 40px; border-top: 1px solid var(--gray-100); display: flex; justify-content: flex-end; }
-        .btn-submit { background: var(--primary); color: #fff; padding: 10px 24px; border-radius: 6px; font-weight: bold; }
-        .btn-submit:hover { background: var(--primary-hover); }
+        /* ================= 编辑器底部按钮区 ================= */
+        .editor-footer { padding: 15px 40px; border-top: 1px solid var(--gray-100); display: flex; justify-content: flex-end; gap: 15px; }
+        .btn-submit { background: var(--white); color: var(--gray-800); border: 1px solid var(--gray-300); padding: 10px 24px; border-radius: 6px; font-weight: bold; }
+        .btn-submit:hover { background: var(--gray-100); }
+        .btn-next-step { background: var(--primary); color: #fff; padding: 10px 24px; border-radius: 6px; font-weight: bold; }
+        .btn-next-step:hover { background: var(--primary-hover); }
 
-        /* 时间线记录区样式保持一致 */
+        /* ================= 时间线记录区 (左侧时间重构) ================= */
         .history-section { padding: 40px; background: #fafafa; }
-        .timeline { position: relative; padding-left: 40px; }
-        .timeline::before { content: ""; position: absolute; left: 7px; top: 5px; bottom: 0; width: 2px; background: var(--gray-200); }
-        .timeline-item { position: relative; margin-bottom: 40px; }
-        .timeline-dot { position: absolute; left: -40px; top: 6px; width: 16px; height: 16px; border-radius: 50%; background: var(--white); border: 3px solid var(--primary); z-index: 2; }
-        .timeline-time { font-size: 12px; color: var(--gray-400); margin-bottom: 8px; font-weight: bold; }
-        .timeline-content { background: var(--white); padding: 20px; border-radius: 10px; border: 1px solid var(--gray-100); line-height: 1.6; }
-        /* 约束时间线内部图片的尺寸，防止历史图片撑破布局 */
+        .timeline { display: flex; flex-direction: column; }
+        .timeline-item { display: flex; position: relative; margin-bottom: 20px; min-height: 60px; }
+        
+        /* 左侧时间 */
+        .timeline-time { width: 140px; flex-shrink: 0; text-align: right; padding-right: 20px; font-size: 14px; color: var(--gray-500); padding-top: 2px; }
+        
+        /* 中间连接线与圆点 */
+        .timeline-divider { position: relative; width: 20px; display: flex; justify-content: center; flex-shrink: 0; }
+        .timeline-dot { width: 14px; height: 14px; border-radius: 50%; background: var(--white); border: 3px solid var(--primary); z-index: 2; margin-top: 4px; }
+        /* 竖线 */
+        .timeline-divider::after { content: ""; position: absolute; top: 18px; bottom: -20px; width: 2px; background: var(--gray-200); z-index: 1; }
+        /* 最后一个元素不显示向下延伸的竖线 */
+        .timeline-item:last-child .timeline-divider::after { display: none; }
+        
+        /* 右侧内容 (已删除多余的背景、边框等视觉 CSS) */
+        .timeline-content { flex: 1; padding-left: 20px; padding-bottom: 30px; line-height: 1.6; }
         .timeline-content img { max-width: 100%; height: auto; }
     </style>
 </head>
@@ -105,13 +105,13 @@
     <div class="stepper-container" id="stepperContainer"></div>
 
     <div class="main-panel">
-        <!-- Quill 编辑器容器 -->
         <div class="editor-container">
             <div id="editor"></div>
         </div>
 
         <div class="editor-footer">
             <button class="btn-submit" id="submitBtn">保存当前记录</button>
+            <button class="btn-next-step" id="nextStepBtn">进入下一阶段</button>
         </div>
 
         <div class="history-section">
@@ -120,15 +120,15 @@
     </div>
 </div>
 
-<!-- 2. 引入 Quill 核心 JS -->
 <script src="https://cdn.quilljs.com/1.3.6/quill.min.js"></script>
-<!-- 3. 引入 图片缩放插件 (必须在 Quill 之后引入) -->
 <script src="https://cdn.jsdelivr.net/npm/quill-image-resize-module@3.0.0/image-resize.min.js"></script>
 
 <script>
     const PROJECT_ID = '<%= projectId %>';
     const BACKEND_DATA = <%- JSON.stringify(projectData) %>;
     const statusMap = { '需求': 0, '准备': 1, '生产': 2, '质检': 3, '运输': 4, '完成': 5 };
+    const stepsName =['需求', '准备', '生产', '质检', '运输', '完成'];
+    const stepsId =['requirement', 'preparation', 'production', 'qa', 'transport', 'done'];
 
     let state = {
         activeStepIndex: BACKEND_DATA.project_status ? (statusMap[BACKEND_DATA.project_status] || 0) : 0,
@@ -140,15 +140,11 @@
         theme: 'snow',
         placeholder: '在此输入工作记录，支持直接粘贴或拖拽图片...',
         modules: {
-            // 配置顶部工具栏
-            toolbar: [
-                [{ 'header':[1, 2, false] }],
-                ['bold', 'italic', 'underline', 'strike'],[{ 'list': 'ordered'}, { 'list': 'bullet' }],
-                ['blockquote', 'code-block'],
+            toolbar:[
+                [{ 'header':[1, 2, false] }],['bold', 'italic', 'underline', 'strike'],[{ 'list': 'ordered'}, { 'list': 'bullet' }],['blockquote', 'code-block'],
                 ['image', 'link', 'video'],
                 ['clean']
             ],
-            // 启用图片缩放模块
             imageResize: {
                 displaySize: true, 
                 modules:[ 'Resize', 'DisplaySize', 'Toolbar' ]
@@ -160,9 +156,8 @@
     function renderStepper() {
         const container = document.getElementById('stepperContainer');
         container.innerHTML = '';
-        const steps =['需求', '准备', '生产', '质检', '运输', '完成'];
-        steps.forEach((title, index) => {
-            const stepId =['requirement', 'preparation', 'production', 'qa', 'transport', 'done'][index];
+        
+        stepsName.forEach((title, index) => {
             const isCompleted = index < state.activeStepIndex;
             const isActive = index === state.activeStepIndex;
             
@@ -172,23 +167,30 @@
             node.onclick = () => { state.activeStepIndex = index; renderStepper(); renderTimeline(); };
             container.appendChild(node);
 
-            if (index < steps.length - 1) {
+            if (index < stepsName.length - 1) {
                 const line = document.createElement('div');
                 line.className = `step-line ${index < state.activeStepIndex ? 'completed' : ''}`;
                 container.appendChild(line);
             }
         });
+
+        // 如果是最后一步，隐藏“进入下一阶段”按钮
+        const nextBtn = document.getElementById('nextStepBtn');
+        if (state.activeStepIndex >= stepsName.length - 1) {
+            nextBtn.style.display = 'none';
+        } else {
+            nextBtn.style.display = 'block';
+        }
     }
 
-    // 渲染时间线（带防御性逻辑）
+    // 渲染时间线
     function renderTimeline() {
-        const steps =['requirement', 'preparation', 'production', 'qa', 'transport', 'done'];
-        const stepId = steps[state.activeStepIndex];
-        document.getElementById('currentStepName').innerText =['需求', '准备', '生产', '质检', '运输', '完成'][state.activeStepIndex];
+        const stepId = stepsId[state.activeStepIndex];
+        document.getElementById('currentStepName').innerText = stepsName[state.activeStepIndex];
         
         let records = state.nodesData[stepId] ||[];
         if (!Array.isArray(records)) {
-            records = (typeof records === 'object' && records.text) ? [{time: '历史数据', html: records.text}] :[];
+            records = (typeof records === 'object' && records.text) ?[{time: '历史数据', html: records.text}] :[];
         }
 
         const container = document.getElementById('timelineContainer');
@@ -197,27 +199,29 @@
             return;
         }
 
-        container.innerHTML =[...records].reverse().map(item => `
+        container.innerHTML = [...records].reverse().map(item => `
             <div class="timeline-item">
-                <div class="timeline-dot"></div>
                 <div class="timeline-time">${item.time || '记录日期'}</div>
+                <div class="timeline-divider">
+                    <div class="timeline-dot"></div>
+                </div>
                 <div class="timeline-content">${item.html || ''}</div>
             </div>
         `).join('');
     }
 
-    // 提交逻辑 (改为获取 Quill 的内容)
+    // 提交记录逻辑
     document.getElementById('submitBtn').addEventListener('click', async () => {
-        // 判断 Quill 是否为空（长度只有1，且没有插入图片等元素）
         if (quill.getLength() <= 1 && !quill.root.innerHTML.includes('<img')) {
             return alert("内容为空");
         }
 
-        // 获取带格式的 HTML 代码
         const html = quill.root.innerHTML;
-        const steps =['requirement', 'preparation', 'production', 'qa', 'transport', 'done'];
-        const stepId = steps[state.activeStepIndex];
-        const time = new Date().toLocaleString();
+        const stepId = stepsId[state.activeStepIndex];
+        
+        // 格式化时间，以满足左侧显示的需要 (可以根据实际需要调整时间格式)
+        const now = new Date();
+        const time = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-${String(now.getDate()).padStart(2,'0')} ${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}`;
 
         try {
             const res = await fetch('/api/upload', {
@@ -229,15 +233,24 @@
             if (result.success) {
                 if (!state.nodesData[stepId]) state.nodesData[stepId] =[];
                 state.nodesData[stepId].push({ time, html });
-                
-                // 提交成功后清空编辑器
                 quill.setContents([{ insert: '\n' }]);
-                
                 renderTimeline();
             }
         } catch (e) { alert("网络异常"); }
     });
 
+    // 点击进入下一阶段逻辑
+    document.getElementById('nextStepBtn').addEventListener('click', () => {
+        if (state.activeStepIndex < stepsName.length - 1) {
+            state.activeStepIndex++;
+            renderStepper();
+            renderTimeline();
+            // TODO: 这里可以根据你的业务逻辑，补充一个更新后端整体状态的请求
+            // fetch('/api/updateStep', { ... })
+        }
+    });
+
+    // 初始化渲染
     renderStepper();
     renderTimeline();
 </script>
