@@ -40,7 +40,7 @@ app.get('/:projectId', async (req, res) => {
 
     try {
         // 请求 n8n 获取当前项目数据
-        const n8nUrl = `https://n8n.yiswim.cloud/webhook/check-project?id=${projectId}`;
+        const n8nUrl = `https://n8n.yiswim.cloud/webhook-test/check-project?id=${projectId}`;
         const response = await fetch(n8nUrl);
         
         if (!response.ok) return res.status(404).send('项目不存在');
@@ -63,3 +63,4 @@ app.get('/:projectId', async (req, res) => {
 
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => console.log(`服务已启动，端口 ${PORT}`));
+
