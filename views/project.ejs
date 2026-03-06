@@ -5,6 +5,12 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>项目跟踪 - <%= projectId %></title>
     
+    <!-- 引入 Editor.js 相关库 -->
+    <script src="https://cdn.jsdelivr.net/npm/@editorjs/editorjs@latest"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@editorjs/header@latest"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@editorjs/list@latest"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@editorjs/image@latest"></script>
+    
     <style>
         :root {
             --primary: #aa0000;       
@@ -29,90 +35,47 @@
 
         /* ================= 顶部信息 ================= */
         .project-header { 
-            margin-bottom: 30px; 
-            padding: 24px; 
-            background: var(--white);
-            border-radius: var(--radius);
-            box-shadow: 0 1px 3px rgba(0,0,0,0.05);
-            display: flex; 
-            justify-content: space-between; 
-            align-items: center;
+            margin-bottom: 30px; padding: 24px; background: var(--white);
+            border-radius: var(--radius); box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+            display: flex; justify-content: space-between; align-items: center;
         }
         .header-left h1 { color: var(--gray-800); font-size: 22px; margin-bottom: 6px; }
         .header-left .project-type { 
-            display: inline-block;
-            background: #fff1f0; 
-            color: var(--primary); 
-            padding: 2px 10px; 
-            border-radius: 4px; 
-            font-size: 13px; 
-            font-weight: bold;
+            display: inline-block; background: #fff1f0; color: var(--primary); 
+            padding: 2px 10px; border-radius: 4px; font-size: 13px; font-weight: bold;
         }
-        .info-badge {
-            background: var(--gray-100);
-            padding: 8px 14px;
-            border-radius: 6px;
-            font-size: 13px;
-            color: var(--gray-500);
-        }
-        .info-badge strong { color: var(--gray-800); }
+        .info-badge { background: var(--gray-100); padding: 8px 14px; border-radius: 6px; font-size: 13px; color: var(--gray-500); }
 
-        /* ================= 椭圆进度条 (8px线) ================= */
-        .stepper-container { 
-            display: flex; 
-            align-items: center; 
-            justify-content: space-between; 
-            margin: 40px 0;
-            padding: 0 5px;
-        }
+        /* ================= 进度条 ================= */
+        .stepper-container { display: flex; align-items: center; justify-content: space-between; margin: 40px 0; padding: 0 5px; }
         .step-node { display: flex; align-items: center; z-index: 2; cursor: pointer; }
         .step-oval { 
-            width: 100px; height: 40px; border-radius: 20px; 
-            background-color: var(--white); border: 2px solid var(--gray-300);
-            color: var(--gray-500); display: flex; align-items: center; justify-content: center; 
-            font-size: 14px; font-weight: 600; 
+            width: 100px; height: 40px; border-radius: 20px; background-color: var(--white); 
+            border: 2px solid var(--gray-300); color: var(--gray-500); 
+            display: flex; align-items: center; justify-content: center; font-size: 14px; font-weight: 600; 
         }
-        .step-node.active .step-oval { 
-            background-color: var(--primary); border-color: var(--primary); color: var(--white);
-            box-shadow: 0 4px 12px rgba(170, 0, 0, 0.2);
-        }
-        .step-node.completed .step-oval { 
-            background-color: var(--white); border-color: var(--primary); color: var(--primary);
-        }
-        .step-line { 
-            flex: 1; height: 8px; /* 增加到 8px */
-            background-color: var(--gray-200); margin: 0 -1px; z-index: 1; 
-            border-radius: 4px;
-        }
+        .step-node.active .step-oval { background-color: var(--primary); border-color: var(--primary); color: var(--white); }
+        .step-node.completed .step-oval { background-color: var(--white); border-color: var(--primary); color: var(--primary); }
+        .step-line { flex: 1; height: 8px; background-color: var(--gray-200); margin: 0 -1px; z-index: 1; border-radius: 4px; }
         .step-line.completed { background-color: var(--primary); }
 
         /* ================= 主面板 ================= */
         .main-panel { background: var(--white); border-radius: var(--radius); box-shadow: 0 4px 20px rgba(0,0,0,0.05); overflow: hidden; }
 
-        /* 上部分：输入区 */
-        .input-section { padding: 30px; border-bottom: 2px solid var(--gray-100); background: #fff; }
-        .input-group { margin-bottom: 20px; }
-        .input-label { font-size: 14px; font-weight: bold; margin-bottom: 8px; display: block; color: var(--gray-500); }
+        /* 上部分：Editor.js 输入区 */
+        .input-section { padding: 30px; border-bottom: 2px solid var(--gray-100); }
+        .input-label { font-size: 16px; font-weight: bold; margin-bottom: 15px; display: block; color: var(--gray-800); }
         
-        textarea { 
-            width: 100%; min-height: 120px; padding: 15px; 
+        #editorjs { 
             border: 1px solid var(--gray-200); border-radius: 8px; 
-            resize: vertical; font-size: 15px; background: var(--bg-color);
+            padding: 10px; min-height: 200px; background: #fff;
         }
-        textarea:focus { outline: none; border-color: var(--primary); background: #fff; }
+        /* 调整 Editor.js 内部样式使其更契合 */
+        .ce-block__content, .ce-toolbar__content { max-width: 95% !important; }
+        .ce-editorjs { font-size: 15px; }
 
-        .upload-controls { display: flex; gap: 15px; align-items: center; flex-wrap: wrap; }
-        .file-input-wrapper { position: relative; }
-        .btn-outline { 
-            background: #fff; border: 1px solid var(--gray-300); padding: 8px 16px; 
-            border-radius: 6px; font-size: 13px; display: flex; align-items: center; gap: 6px; 
-        }
-        .btn-outline:hover { border-color: var(--primary); color: var(--primary); }
-        
-        .btn-submit { 
-            background: var(--primary); color: #fff; padding: 10px 24px; 
-            border-radius: 6px; font-weight: bold; margin-left: auto;
-        }
+        .editor-footer { display: flex; justify-content: flex-end; margin-top: 15px; }
+        .btn-submit { background: var(--primary); color: #fff; padding: 10px 30px; border-radius: 6px; font-weight: bold; }
         .btn-submit:hover { background: var(--primary-hover); }
 
         /* 下部分：时间线展示区 */
@@ -121,46 +84,29 @@
         .history-title::before { content: ""; width: 4px; height: 18px; background: var(--primary); border-radius: 2px; }
 
         .timeline { position: relative; padding-left: 40px; }
-        /* 垂直轴线 */
-        .timeline::before { 
-            content: ""; position: absolute; left: 7px; top: 5px; bottom: 0; 
-            width: 2px; background: var(--gray-200); 
-        }
-
+        .timeline::before { content: ""; position: absolute; left: 7px; top: 5px; bottom: 0; width: 2px; background: var(--gray-200); }
         .timeline-item { position: relative; margin-bottom: 40px; }
-        /* 时间轴圆点 */
-        .timeline-dot { 
-            position: absolute; left: -40px; top: 6px; 
-            width: 16px; height: 16px; border-radius: 50%; 
-            background: var(--white); border: 3px solid var(--primary); z-index: 2;
-        }
+        .timeline-dot { position: absolute; left: -40px; top: 6px; width: 16px; height: 16px; border-radius: 50%; background: var(--white); border: 3px solid var(--primary); z-index: 2; }
         .timeline-time { font-size: 13px; color: var(--gray-400); margin-bottom: 8px; font-weight: 500; }
         .timeline-content { 
             background: var(--white); padding: 20px; border-radius: 10px; 
             box-shadow: 0 2px 8px rgba(0,0,0,0.04); border: 1px solid var(--gray-100);
         }
-        .timeline-text { font-size: 15px; color: var(--gray-800); white-space: pre-wrap; margin-bottom: 12px; }
         
-        /* 附件展示 */
-        .timeline-attachments { display: flex; gap: 10px; flex-wrap: wrap; }
-        .img-preview { width: 100px; height: 100px; object-fit: cover; border-radius: 6px; border: 1px solid var(--gray-200); cursor: zoom-in; }
-        .file-link { 
-            display: flex; align-items: center; gap: 8px; background: var(--gray-100); 
-            padding: 6px 12px; border-radius: 4px; font-size: 12px; text-decoration: none; color: var(--primary); 
-        }
+        /* 时间线内的内容解析样式 */
+        .rendered-content p { margin-bottom: 10px; }
+        .rendered-content img { max-width: 100%; border-radius: 8px; margin: 10px 0; border: 1px solid #eee; }
+        .rendered-content ul { padding-left: 20px; margin-bottom: 10px; }
 
         @media (max-width: 768px) {
             .stepper-container { flex-direction: column; }
             .step-line { width: 8px; height: 30px; flex: none; margin: -1px 0; }
-            .upload-controls { flex-direction: column; align-items: stretch; }
-            .btn-submit { margin-left: 0; width: 100%; }
         }
     </style>
 </head>
 <body>
 
 <div class="container">
-    <!-- 顶部 -->
     <div class="project-header">
         <div class="header-left">
             <h1><%= projectData.uuid || projectId %></h1>
@@ -172,41 +118,22 @@
         </div>
     </div>
 
-    <!-- 进度条 -->
     <div class="stepper-container" id="stepperContainer"></div>
 
     <div class="main-panel">
-        <!-- 上部分：输入 -->
+        <!-- 上部分：Editor.js -->
         <div class="input-section">
-            <div class="input-group">
-                <label class="input-label">新增 <span id="currentStepName">需求</span> 记录</label>
-                <textarea id="mainInput" placeholder="在此输入当前阶段的进展情况、说明文字..."></textarea>
+            <label class="input-label">新增 <span id="currentStepName">需求</span> 记录</label>
+            <div id="editorjs"></div>
+            <div class="editor-footer">
+                <button class="btn-submit" id="saveButton">提交此阶段记录</button>
             </div>
-            
-            <div class="upload-controls">
-                <div class="file-input-wrapper">
-                    <button class="btn-outline">
-                        <span>📷 上传图片</span>
-                        <input type="file" id="imageInput" accept="image/*" multiple style="position:absolute; opacity:0; left:0; top:0; width:100%; cursor:pointer;">
-                    </button>
-                </div>
-                <div class="file-input-wrapper">
-                    <button class="btn-outline">
-                        <span>📎 附件上传</span>
-                        <input type="file" id="fileInput" multiple style="position:absolute; opacity:0; left:0; top:0; width:100%; cursor:pointer;">
-                    </button>
-                </div>
-                <button class="btn-submit" onclick="handleUpload()">提交记录</button>
-            </div>
-            <div id="filePreviewList" style="margin-top: 10px; font-size: 12px; color: var(--gray-500);"></div>
         </div>
 
         <!-- 下部分：展示 -->
         <div class="history-section">
-            <div class="history-title">阶段执行记录</div>
-            <div class="timeline" id="timelineContainer">
-                <!-- 动态渲染时间线项 -->
-            </div>
+            <div class="history-title">历史更新记录</div>
+            <div class="timeline" id="timelineContainer"></div>
         </div>
     </div>
 </div>
@@ -214,6 +141,25 @@
 <script>
     const PROJECT_ID = '<%= projectId %>';
     const BACKEND_DATA = <%- JSON.stringify(projectData) %>;
+
+    // 1. 初始化 Editor.js
+    const editor = new EditorJS({
+        holder: 'editorjs',
+        placeholder: '点击此处开始输入进展内容，点击左侧 "+" 可插入图片或列表...',
+        tools: {
+            header: Header,
+            list: List,
+            image: {
+                class: ImageTool,
+                config: {
+                    endpoints: {
+                        byFile: '/api/upload-image', // 你的图片上传接口
+                    }
+                }
+            }
+        },
+        data: {} // 初始为空
+    });
 
     const STEPS_CONFIG =[
         { id: 'requirement', title: '需求' },
@@ -226,12 +172,29 @@
 
     const statusMap = { '需求': 0, '准备': 1, '生产': 2, '质检': 3, '运输': 4, '完成': 5 };
     
-    // 初始化状态：nodesData 现在存储的是记录数组
     let state = {
         activeStepIndex: BACKEND_DATA.project_status ? (statusMap[BACKEND_DATA.project_status] || 0) : 0,
-        // 假设后端 nodesData 结构为：{ requirement: [ {time, text, images:[], files:[]}, ... ] }
         nodesData: BACKEND_DATA.nodesData || {}
     };
+
+    // 2. 将 Editor.js 的 JSON 数据转换为 HTML 以便在时间轴显示
+    function blocksToHtml(blocks) {
+        return blocks.map(block => {
+            switch (block.type) {
+                case 'paragraph':
+                    return `<p>${block.data.text}</p>`;
+                case 'header':
+                    return `<h${block.data.level}>${block.data.text}</h${block.data.level}>`;
+                case 'list':
+                    const tag = block.data.style === 'ordered' ? 'ol' : 'ul';
+                    return `<${tag}>${block.data.items.map(i => `<li>${i}</li>`).join('')}</${tag}>`;
+                case 'image':
+                    return `<img src="${block.data.file.url}" alt="${block.data.caption || ''}">`;
+                default:
+                    return '';
+            }
+        }).join('');
+    }
 
     function renderStepper() {
         const container = document.getElementById('stepperContainer');
@@ -266,11 +229,10 @@
         document.getElementById('currentStepName').innerText = STEPS_CONFIG[state.activeStepIndex].title;
         
         if (records.length === 0) {
-            container.innerHTML = `<div style="text-align:center; padding: 40px; color:#999;">暂无记录</div>`;
+            container.innerHTML = `<div style="text-align:center; padding: 40px; color:#999;">该阶段暂无记录</div>`;
             return;
         }
 
-        // 按时间倒序排列（最新的在最上面）
         const sortedRecords = [...records].reverse();
 
         container.innerHTML = sortedRecords.map(item => `
@@ -278,17 +240,9 @@
                 <div class="timeline-dot"></div>
                 <div class="timeline-time">${item.time}</div>
                 <div class="timeline-content">
-                    <div class="timeline-text">${item.text}</div>
-                    ${item.images && item.images.length ? `
-                        <div class="timeline-attachments" style="margin-bottom:10px;">
-                            ${item.images.map(img => `<img src="${img}" class="img-preview">`).join('')}
-                        </div>
-                    ` : ''}
-                    ${item.files && item.files.length ? `
-                        <div class="timeline-attachments">
-                            ${item.files.map(f => `<a href="${f.url}" class="file-link">📄 ${f.name}</a>`).join('')}
-                        </div>
-                    ` : ''}
+                    <div class="rendered-content">
+                        ${typeof item.content === 'object' ? blocksToHtml(item.content.blocks) : item.content}
+                    </div>
                 </div>
             </div>
         `).join('');
@@ -300,55 +254,51 @@
         renderTimeline();
     }
 
-    async function handleUpload() {
-        const text = document.getElementById('mainInput').value.trim();
-        if (!text) return alert("请输入文字内容");
-
-        const stepId = STEPS_CONFIG[state.activeStepIndex].id;
-        const btn = document.querySelector('.btn-submit');
-        btn.disabled = true;
-        btn.innerText = "提交中...";
-
-        // 模拟文件上传逻辑 (实际应使用 FormData)
+    // 3. 提交处理
+    document.getElementById('saveButton').addEventListener('click', async () => {
         try {
-            // 这里根据实际后端 API 修改
+            const outputData = await editor.save();
+            if (outputData.blocks.length === 0) {
+                alert("请输入内容后再提交");
+                return;
+            }
+
+            const stepId = STEPS_CONFIG[state.activeStepIndex].id;
+            const saveBtn = document.getElementById('saveButton');
+            saveBtn.disabled = true;
+            saveBtn.innerText = "提交中...";
+
             const res = await fetch('/api/upload', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
                     projectId: PROJECT_ID,
                     stepId: stepId,
-                    text: text,
+                    content: outputData, // 发送原始 JSON 到后端
                     time: new Date().toLocaleString()
                 })
             });
 
             const result = await res.json();
             if (result.success) {
-                // 更新本地数据状态
                 if (!state.nodesData[stepId]) state.nodesData[stepId] = [];
                 state.nodesData[stepId].push({
                     time: new Date().toLocaleString(),
-                    text: text,
-                    images: [], // 实际应从后端返回
-                    files: []
+                    content: outputData
                 });
                 
-                document.getElementById('mainInput').value = '';
+                // 提交后清空编辑器
+                editor.clear();
                 renderTimeline();
             }
-        } catch (e) {
-            alert("提交失败，请重试");
+        } catch (error) {
+            console.error('Saving failed: ', error);
+            alert("提交失败");
         } finally {
-            btn.disabled = false;
-            btn.innerText = "提交记录";
+            const saveBtn = document.getElementById('saveButton');
+            saveBtn.disabled = false;
+            saveBtn.innerText = "提交此阶段记录";
         }
-    }
-
-    // 初始化预览
-    document.getElementById('imageInput').addEventListener('change', function(e) {
-        const list = document.getElementById('filePreviewList');
-        list.innerText = `已选择 ${e.target.files.length} 张图片`;
     });
 
     renderStepper();
