@@ -57,11 +57,12 @@ app.get('/:projectId', async (req, res) => {
 
     } catch (error) {
         console.error(error);
-        res.status(500).send('系统错误');
+        res.status(500).send('system error');
     }
 });
 
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => console.log(`服务已启动，端口 ${PORT}`));
+
 
 
