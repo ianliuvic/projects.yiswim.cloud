@@ -6,7 +6,7 @@
     <title>项目跟踪 - 红绣服饰</title>
     
     <!-- 引入 Quill 核心样式 -->
-    <link href="/quill.snow.css" rel="stylesheet">
+    <link href="https://cdn.quilljs.com/1.3.6/quill.snow.css" rel="stylesheet">
 
     <style>
         :root {
@@ -31,37 +31,62 @@
         
         button { cursor: pointer; border: none; font-family: inherit; transition: all 0.2s; }
 
-        /* ================= 新增：品牌头部 (Logo + 标题) ================= */
+        /* ================= 品牌头部 ================= */
         .brand-header {
-            display: flex;
-            align-items: center;
-            margin-bottom: 24px;
+            display: flex; align-items: center; margin-bottom: 24px;
         }
         .brand-logo {
-            width: 40px;
-            height: 40px;
-            margin-right: 14px;
-            border-radius: 6px;
-            object-fit: contain;
-            /* 如果图片没加载出来，给一个默认底色 */
-            background-color: var(--white); 
-            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+            width: 40px; height: 40px; margin-right: 14px; border-radius: 6px; object-fit: contain;
+            background-color: var(--white); box-shadow: 0 2px 4px rgba(0,0,0,0.05);
         }
         .brand-title {
-            font-size: 22px;
-            font-weight: bold;
-            color: var(--primary);
-            letter-spacing: 1px;
+            font-size: 22px; font-weight: bold; color: var(--primary); letter-spacing: 1px;
         }
 
-        /* ================= 顶部信息 ================= */
-        .project-header { 
-            margin-bottom: 30px; padding: 24px; background: var(--white);
-            border-radius: var(--radius); box-shadow: 0 1px 3px rgba(0,0,0,0.05);
-            display: flex; justify-content: space-between; align-items: center;
+        /* ================= 新版项目信息卡片 (替代原project-header) ================= */
+        .project-info-grid {
+            display: grid;
+            /* 自动适应宽度：电脑一行4个，手机一行2个 */
+            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); 
+            gap: 20px;
+            background: var(--white);
+            padding: 24px;
+            border-radius: var(--radius);
+            /* 使用边框代替阴影，更加简洁 */
+            border: 1px solid var(--gray-200);
+            margin-bottom: 30px;
         }
-        .header-left h1 { color: var(--gray-800); font-size: 20px; margin: 0; }
-        .info-badge { background: var(--gray-100); padding: 8px 14px; border-radius: 6px; font-size: 13px; color: var(--gray-500); }
+
+        .info-item {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .info-label {
+            font-size: 12px;
+            color: var(--gray-500);
+            text-transform: uppercase; /* 大写，更有设计感 */
+            letter-spacing: 0.5px;
+            margin-bottom: 6px;
+        }
+
+        .info-value {
+            font-size: 15px;
+            font-weight: 600;
+            color: var(--gray-800);
+        }
+
+        /* 为UUID使用等宽字体，看起来更像代码/ID */
+        .info-value.mono {
+            font-family: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, Courier, monospace;
+            font-size: 14px;
+            color: var(--gray-500);
+        }
+        
+        /* 状态高亮色 */
+        .info-value.highlight {
+            color: var(--primary);
+        }
 
         /* ================= 进度条 ================= */
         .stepper-container { display: flex; align-items: center; justify-content: space-between; margin: 40px 0; }
@@ -72,32 +97,26 @@
             display: flex; align-items: center; justify-content: center; font-size: 14px; font-weight: 600; 
             transition: all 0.2s;
         }
-        
         .step-node.active .step-oval { background-color: var(--primary); border-color: var(--primary); color: var(--white); }
         .step-node.completed .step-oval { background-color: var(--white); border-color: var(--primary); color: var(--primary); }
-        
         .step-node.locked { cursor: not-allowed; }
         .step-node.locked .step-oval { background-color: var(--gray-100); border-color: var(--gray-200); color: var(--gray-400); }
-
         .step-line { flex: 1; height: 8px; background-color: var(--gray-200); z-index: 1; margin: 0 -1px; transition: all 0.3s; }
         .step-line.completed { background-color: var(--primary); }
         .step-line.half-active { background: linear-gradient(to right, var(--primary) 25%, var(--gray-200) 75%); }
 
         /* ================= 主体区域 ================= */
         .main-panel { background: var(--white); border-radius: var(--radius); box-shadow: 0 4px 20px rgba(0,0,0,0.05); overflow: hidden; display: flex; flex-direction: column; }
-        
         .ql-toolbar.ql-snow { border: none; border-bottom: 1px solid var(--gray-200); background: #fafafa; padding: 12px 40px; }
         .ql-container.ql-snow { border: none; font-family: inherit; }
         .ql-editor { min-height: 200px; padding: 30px 40px; font-size: 16px; color: #374151; line-height: 1.7; }
         .ql-editor.ql-blank::before { left: 40px; right: 40px; font-style: normal; color: #adb5bd; }
-
         .editor-footer { padding: 15px 40px; border-top: 1px solid var(--gray-100); display: flex; justify-content: flex-end; }
         .btn-submit { background: var(--primary); color: var(--white); border: none; padding: 10px 24px; border-radius: 6px; font-weight: bold; }
         .btn-submit:hover { background: var(--primary-hover); }
 
         .history-section { padding: 40px; background: #fafafa; border-top: 1px solid var(--gray-100); flex-grow: 1; }
         .history-title { font-size: 16px; font-weight: bold; color: var(--gray-800); border-bottom: 1px solid var(--gray-200); padding-bottom: 12px; margin-bottom: 24px; }
-        
         .timeline { display: flex; flex-direction: column; }
         .timeline-item { display: flex; align-items: stretch; position: relative; } 
         .timeline-divider { width: 24px; display: flex; flex-direction: column; align-items: center; flex-shrink: 0; margin-right: 16px; position: relative; }
@@ -115,17 +134,7 @@
         .link-next-step { color: var(--gray-500); font-size: 14px; text-decoration: underline; cursor: pointer; transition: color 0.2s; }
         .link-next-step:hover { color: var(--primary); }
 
-        /* ================= 新增：底部版权区域 ================= */
-        .page-footer {
-            text-align: center;
-            margin-top: 50px;
-            padding-top: 20px;
-            padding-bottom: 20px;
-            border-top: 1px solid var(--gray-200);
-            color: var(--gray-400);
-            font-size: 13px;
-            letter-spacing: 0.5px;
-        }
+        .page-footer { text-align: center; margin-top: 50px; padding-top: 20px; padding-bottom: 20px; border-top: 1px solid var(--gray-200); color: var(--gray-400); font-size: 13px; letter-spacing: 0.5px; }
 
         /* ================= 身份验证弹窗样式 ================= */
         .auth-modal-overlay {
@@ -168,21 +177,33 @@
     </div>
 </div>
 
-<!-- 主界面区域 (初始通过 CSS display:none 隐藏) -->
 <div class="container" id="appContainer">
     
-    <!-- 新增：左上方 Logo 与 系统名称 -->
+    <!-- 左上方 Logo 与 系统名称 -->
     <div class="brand-header">
-        <!-- 请确保你的 public 文件夹下有一张 logo.png 图片 -->
         <img src="/logo.png" alt="Logo" class="brand-logo" onerror="this.src='data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdib3g9IjAgMCAxMDAgMTAwIj48cmVjdCB3aWR0aD0iMTAwIiBoZWlnaHQ9IjEwMCIgZmlsbD0iI2RkZCIvPjwvc3ZnPg=='" />
         <div class="brand-title">项目跟踪系统</div>
     </div>
 
-    <div class="project-header">
-        <div class="header-left">
-            <h1>跟踪项目: <span id="currentStepName">需求</span></h1>
+    <!-- 【修改点】新版项目信息 Grid -->
+    <div class="project-info-grid">
+        <div class="info-item">
+            <span class="info-label">项目类型</span>
+            <span class="info-value" id="displayType">加载中...</span>
         </div>
-        <div class="info-badge">UUID: <strong><%= projectId %></strong></div>
+        <div class="info-item">
+            <span class="info-label">项目 ID (UUID)</span>
+            <!-- 使用 CSS 截断或保持单行，配以 mono 字体 -->
+            <span class="info-value mono" id="displayUuid"><%= projectId %></span>
+        </div>
+        <div class="info-item">
+            <span class="info-label">当前状态</span>
+            <span class="info-value highlight" id="displayStatus">加载中...</span>
+        </div>
+        <div class="info-item">
+            <span class="info-label">当前身份</span>
+            <span class="info-value" id="displayRole">验证中...</span>
+        </div>
     </div>
 
     <div class="stepper-container" id="stepperContainer"></div>
@@ -206,18 +227,16 @@
         <span class="link-next-step" id="nextStepBtn">进入下一阶段 ></span>
     </div>
 
-    <!-- 新增：正下方版权信息 -->
     <div class="page-footer">
         &copy; <span id="currentYear"></span> 红绣服饰 (Hongxiu Clothing). All Rights Reserved. | 专属定制 · 品质追踪
     </div>
 
 </div> 
 
-<script src="/quill.min.js"></script>
-<script src="/image-resize.min.js"></script>
+<script src="https://cdn.quilljs.com/1.3.6/quill.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/quill-image-resize-module@3.0.0/image-resize.min.js"></script>
 
 <script>
-    // 动态获取当前年份填充到 footer 中
     document.getElementById('currentYear').innerText = new Date().getFullYear();
 
     const PROJECT_ID = '<%= projectId %>';
@@ -225,25 +244,26 @@
     const stepsName = ['需求', '准备', '生产', '质检', '运输', '完成'];
     const stepsId = ['requirement', 'preparation', 'production', 'qa', 'transport', 'done'];
 
-    // 定义全局变量
     let BACKEND_DATA = {};
     let state = {};
     let quill;
 
     const STORAGE_KEY = `tracker_token_${PROJECT_ID}`;
 
-    // === 核心验证函数 ===
     async function verifyToken(token, isAutoLogin = false) {
         const btn = document.getElementById('verifyBtn');
         const errorMsg = document.getElementById('authError');
         const modal = document.getElementById('authModal');
         const appContainer = document.getElementById('appContainer');
 
-        btn.innerText = isAutoLogin ? '自动登录中...' : '验证中...';
-        btn.disabled = true;
-        errorMsg.style.display = 'none';
+        if (!isAutoLogin) {
+            btn.innerText = '验证中...';
+            btn.disabled = true;
+            errorMsg.style.display = 'none';
+        }
 
         try {
+            // 发送请求给后端 -> 后端调用 n8n
             const response = await fetch('/api/get-project', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
@@ -252,13 +272,25 @@
             const result = await response.json();
 
             if (result.success) {
+                // 验证成功：存入 LocalStorage 方便下次免登
                 localStorage.setItem(STORAGE_KEY, token);
                 
+                // 切换界面
                 modal.style.display = 'none';
                 appContainer.style.display = 'block';
                 
                 BACKEND_DATA = result.data;
+
+                // 【修改点】填充顶部 Grid 信息
+                document.getElementById('displayType').innerText = BACKEND_DATA.project_type || '定制生产';
+                document.getElementById('displayUuid').innerText = BACKEND_DATA.uuid || PROJECT_ID;
+                document.getElementById('displayStatus').innerText = BACKEND_DATA.project_status || '未知';
                 
+                // 简单的角色文案转换
+                const roleText = (BACKEND_DATA.role === 'admin' || BACKEND_DATA.role === 'write') ? '管理员 (可编辑)' : '访客 (只读)';
+                document.getElementById('displayRole').innerText = roleText;
+
+                // 初始化状态
                 const realStatusIndex = BACKEND_DATA.project_status ? (statusMap[BACKEND_DATA.project_status] || 0) : 0;
                 
                 state = {
@@ -274,22 +306,34 @@
                     errorMsg.innerText = result.message || 'Token 错误';
                     errorMsg.style.display = 'block';
                 }
+                // 恢复按钮状态
                 btn.innerText = '验证并进入';
                 btn.disabled = false;
+                // 如果是自动登录失败，确保显示弹窗
+                if(isAutoLogin) {
+                    modal.style.display = 'flex';
+                }
             }
         } catch (error) {
+            console.error(error);
             if (!isAutoLogin) {
                 errorMsg.innerText = '网络错误，请稍后再试';
                 errorMsg.style.display = 'block';
             }
             btn.innerText = '验证并进入';
             btn.disabled = false;
+            if(isAutoLogin) {
+                 modal.style.display = 'flex';
+            }
         }
     }
 
+    // 页面加载时尝试读取本地 Token 自动登录
     document.addEventListener('DOMContentLoaded', () => {
         const savedToken = localStorage.getItem(STORAGE_KEY);
         if (savedToken) {
+            // 自动登录模式
+            document.getElementById('verifyBtn').innerText = '自动登录中...';
             verifyToken(savedToken, true);
         }
     });
@@ -299,25 +343,37 @@
         if (token) verifyToken(token, false);
     });
 
+    // 监听回车键提交
+    document.getElementById('tokenInput').addEventListener('keypress', function (e) {
+        if (e.key === 'Enter') {
+            const token = this.value.trim();
+            if (token) verifyToken(token, false);
+        }
+    });
+
     function initApp() {
+        // 如果是只读权限，隐藏编辑器和提交按钮
         if (BACKEND_DATA.role === 'read') {
             const editorContainer = document.querySelector('.editor-container');
             const editorFooter = document.querySelector('.editor-footer');
             if (editorContainer) editorContainer.style.display = 'none';
             if (editorFooter) editorFooter.style.display = 'none';
         } else {
-            quill = new Quill('#editor', {
-                theme: 'snow',
-                placeholder: '在此输入工作记录，支持直接粘贴或拖拽图片...',
-                modules: {
-                    toolbar: [
-                        [{ 'header': [1, 2, false] }], ['bold', 'italic', 'underline', 'strike'], [{ 'list': 'ordered' }, { 'list': 'bullet' }], ['blockquote', 'code-block'],
-                        ['image', 'link', 'video'],
-                        ['clean']
-                    ],
-                    imageResize: { displaySize: true, modules: ['Resize', 'DisplaySize', 'Toolbar'] }
-                }
-            });
+            // 管理员权限才初始化编辑器
+            if (!quill) {
+                quill = new Quill('#editor', {
+                    theme: 'snow',
+                    placeholder: '在此输入工作记录，支持直接粘贴或拖拽图片...',
+                    modules: {
+                        toolbar: [
+                            [{ 'header': [1, 2, false] }], ['bold', 'italic', 'underline', 'strike'], [{ 'list': 'ordered' }, { 'list': 'bullet' }], ['blockquote', 'code-block'],
+                            ['image', 'link', 'video'],
+                            ['clean']
+                        ],
+                        imageResize: { displaySize: true, modules: ['Resize', 'DisplaySize', 'Toolbar'] }
+                    }
+                });
+            }
         }
         renderStepper();
         renderTimeline();
@@ -371,6 +427,7 @@
         });
 
         const nextContainer = document.getElementById('nextStepContainer');
+        // 只读用户 或 已经是最后一步 或 没在最新进度上查看历史时，隐藏"下一步"按钮
         if (BACKEND_DATA.role === 'read' || state.maxStepIndex >= stepsName.length - 1 || state.activeStepIndex !== state.maxStepIndex) {
             nextContainer.style.display = 'none';
         } else {
@@ -380,7 +437,8 @@
 
     function renderTimeline() {
         const stepId = stepsId[state.activeStepIndex];
-        document.getElementById('currentStepName').innerText = stepsName[state.activeStepIndex];
+        // 这里不再需要更新标题，因为标题现在移到了上面的 Grid 里了
+        // document.getElementById('currentStepName').innerText = stepsName[state.activeStepIndex]; 
         
         let records = state.nodesData[stepId] || [];
         if (!Array.isArray(records)) records = (typeof records === 'object' && records.text) ? [{ time: '早期记录', html: records.text }] : [];
@@ -405,7 +463,7 @@
         }).join('');
     }
 
-    document.getElementById('submitBtn').addEventListener('click', () => {
+    document.getElementById('submitBtn').addEventListener('click', async () => {
         if (BACKEND_DATA.role === 'read') return;
         if (!quill) return;
 
@@ -424,6 +482,29 @@
         state.nodesData[stepId].push({ time, html });
         quill.setContents([{ insert: '\n' }]);
         renderTimeline();
+
+        // 实际应用中，这里应该调用 API 保存到后端
+        const btn = document.getElementById('submitBtn');
+        const originalText = btn.innerText;
+        btn.innerText = "保存中...";
+        btn.disabled = true;
+
+        try {
+            await fetch('/api/upload', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ 
+                    projectId: PROJECT_ID, 
+                    content: state.nodesData // 上传完整数据结构或增量
+                })
+            });
+            alert("保存成功");
+        } catch(e) {
+            alert("保存失败");
+        } finally {
+            btn.innerText = originalText;
+            btn.disabled = false;
+        }
     });
 
     document.getElementById('nextStepBtn').addEventListener('click', () => {
@@ -434,6 +515,9 @@
             state.activeStepIndex = state.maxStepIndex; 
             renderStepper();
             renderTimeline();
+            
+            // 此处也需要触发 API 更新项目状态，这里仅做前端演示
+            // updateProjectStatus(stepsName[state.maxStepIndex]);
         }
     });
 </script>
