@@ -62,9 +62,12 @@
         .ql-editor.ql-blank::before { left: 40px; right: 40px; font-style: normal; color: #adb5bd; }
 
         /* ================= 编辑器保存按钮 ================= */
-        .editor-footer { padding: 15px 40px; border-top: 1px solid var(--gray-100); display: flex; justify-content: flex-end; }
-        .btn-submit { background: var(--white); color: var(--gray-800); border: 1px solid var(--gray-300); padding: 10px 24px; border-radius: 6px; font-weight: bold; }
-        .btn-submit:hover { background: var(--gray-100); }
+        /* 修改：保存按钮变为主题色背景、白色字体 */
+        .btn-submit { background: var(--primary); color: var(--white); border: none; padding: 10px 24px; border-radius: 6px; font-weight: bold; }
+        .btn-submit:hover { background: var(--primary-hover); }
+
+        /* 增加：历史数据标题样式 */
+        .history-title { font-size: 16px; font-weight: bold; color: var(--gray-800); border-bottom: 1px solid var(--gray-200); padding-bottom: 12px; margin-bottom: 24px; }
 
         /* ================= 时间线记录区 ================= */
         .history-section { padding: 40px; background: #fafafa; border-top: 1px solid var(--gray-100); flex-grow: 1; }
@@ -120,6 +123,7 @@
 
         <!-- 历史记录展示区 -->
         <div class="history-section">
+            <div class="history-title">历史数据</div>
             <div class="timeline" id="timelineContainer"></div>
         </div>
         
@@ -229,8 +233,8 @@
         `).join('');
     }
 
-    // 保存当前记录逻辑
-    document.getElementById('submitBtn').addEventListener('click', async () => {
+    // 保存当前记录逻辑（纯前端展示）
+    document.getElementById('submitBtn').addEventListener('click', () => {
         if (quill.getLength() <= 1 && !quill.root.innerHTML.includes('<img')) {
             return alert("内容为空");
         }
@@ -242,20 +246,12 @@
         const now = new Date();
         const time = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-${String(now.getDate()).padStart(2,'0')} ${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}`;
 
-        try {
-            const res = await fetch('/api/upload', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ projectId: PROJECT_ID, stepId, html, time })
-            });
-            const result = await res.json();
-            if (result.success) {
-                if (!state.nodesData[stepId]) state.nodesData[stepId] =[];
-                state.nodesData[stepId].push({ time, html });
-                quill.setContents([{ insert: '\n' }]);
-                renderTimeline();
-            }
-        } catch (e) { alert("网络异常"); }
+        // 直接更新前端状态并重新渲染时间线
+        if (!state.nodesData[stepId]) state.nodesData[stepId] =[];
+        state.nodesData[stepId].push({ time, html });
+        
+        quill.setContents([{ insert: '\n' }]); // 清空编辑器
+        renderTimeline(); // 刷新下方历史数据区域
     });
 
     // 点击进入下一阶段逻辑
