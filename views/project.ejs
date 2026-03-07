@@ -62,35 +62,30 @@
         .ql-editor.ql-blank::before { left: 40px; right: 40px; font-style: normal; color: #adb5bd; }
 
         /* ================= 编辑器保存按钮 ================= */
-        /* 修改：保存按钮变为主题色背景、白色字体 */
+        .editor-footer { padding: 15px 40px; border-top: 1px solid var(--gray-100); display: flex; justify-content: flex-end; }
         .btn-submit { background: var(--primary); color: var(--white); border: none; padding: 10px 24px; border-radius: 6px; font-weight: bold; }
         .btn-submit:hover { background: var(--primary-hover); }
 
-        /* 增加：历史数据标题样式 */
-        .history-title { font-size: 16px; font-weight: bold; color: var(--gray-800); border-bottom: 1px solid var(--gray-200); padding-bottom: 12px; margin-bottom: 24px; }
-
         /* ================= 时间线记录区 ================= */
         .history-section { padding: 40px; background: #fafafa; border-top: 1px solid var(--gray-100); flex-grow: 1; }
+        .history-title { font-size: 16px; font-weight: bold; color: var(--gray-800); border-bottom: 1px solid var(--gray-200); padding-bottom: 12px; margin-bottom: 24px; }
+        
         .timeline { display: flex; flex-direction: column; }
-        .timeline-item { display: flex; align-items: flex-start; position: relative; } /* flex-start 保证顶部对齐 */
+        .timeline-item { display: flex; align-items: stretch; position: relative; } 
         
-        /* 左侧时间 */
-        .timeline-time { width: 140px; flex-shrink: 0; text-align: right; padding-right: 20px; font-size: 14px; color: var(--gray-500); line-height: 1.6; }
-        
-        /* 中间连接线与圆点 */
-        .timeline-divider { position: relative; width: 20px; display: flex; justify-content: center; flex-shrink: 0; }
-        /* 调整 margin-top 使红圈和第一行文字水平居中对齐 */
-        .timeline-dot { width: 14px; height: 14px; border-radius: 50%; background: var(--white); border: 3px solid var(--primary); z-index: 2; margin-top: 5px; box-sizing: border-box; }
-        /* 竖线延伸到底部 */
-        .timeline-divider::after { content: ""; position: absolute; top: 19px; bottom: 0; width: 2px; background: var(--gray-200); z-index: 1; }
+        /* 左侧时间线轴 */
+        .timeline-divider { width: 24px; display: flex; flex-direction: column; align-items: center; flex-shrink: 0; margin-right: 16px; position: relative; }
+        .timeline-dot { width: 12px; height: 12px; border-radius: 50%; background: var(--white); border: 2px solid var(--primary); z-index: 2; margin-top: 6px; flex-shrink: 0; }
+        .timeline-divider::after { content: ""; position: absolute; top: 22px; bottom: -10px; width: 2px; background: var(--gray-200); z-index: 1; }
         .timeline-item:last-child .timeline-divider::after { display: none; }
         
-        /* 右侧内容 (修复带<p>标签时的换行对齐问题) */
-        .timeline-content { flex: 1; padding-left: 20px; padding-bottom: 40px; line-height: 1.6; font-size: 15px; color: var(--gray-800); word-break: break-all; }
-        .timeline-content p { margin: 0 0 10px 0; }
-        .timeline-content > :first-child { margin-top: 0; }
-        .timeline-content > :last-child { margin-bottom: 0; }
-        .timeline-content img { max-width: 100%; height: auto; border-radius: 6px; }
+        /* 右侧内容区 (时间在上方，内容在下方) */
+        .timeline-content { flex: 1; padding-bottom: 30px; line-height: 1.6; font-size: 15px; color: var(--gray-800); word-break: break-all; }
+        .timeline-time { font-size: 13px; color: var(--gray-500); margin-bottom: 6px; font-weight: 500; }
+        .timeline-html p { margin: 0 0 10px 0; }
+        .timeline-html > :first-child { margin-top: 0; }
+        .timeline-html > :last-child { margin-bottom: 0; }
+        .timeline-html img { max-width: 100%; height: auto; border-radius: 6px; }
 
         /* ================= 底部：进入下一阶段区域 ================= */
 		.next-step-container { display: flex; justify-content: flex-end; margin-top: 16px; padding-right: 10px; }
@@ -213,7 +208,7 @@
         
         let records = state.nodesData[stepId] ||[];
         if (!Array.isArray(records)) {
-            records = (typeof records === 'object' && records.text) ?[{time: '历史数据', html: records.text}] :[];
+            records = (typeof records === 'object' && records.text) ?[{time: '早期记录', html: records.text}] :[];
         }
 
         const container = document.getElementById('timelineContainer');
@@ -222,13 +217,16 @@
             return;
         }
 
+        // 新的时间线结构：时间线轴在最左侧，记录时间和内容在右侧
         container.innerHTML = [...records].reverse().map(item => `
             <div class="timeline-item">
-                <div class="timeline-time">${item.time || '历史数据'}</div>
                 <div class="timeline-divider">
                     <div class="timeline-dot"></div>
                 </div>
-                <div class="timeline-content">${item.html || ''}</div>
+                <div class="timeline-content">
+                    <div class="timeline-time">${item.time || '早期记录'}</div>
+                    <div class="timeline-html">${item.html || ''}</div>
+                </div>
             </div>
         `).join('');
     }
@@ -246,8 +244,15 @@
         const now = new Date();
         const time = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-${String(now.getDate()).padStart(2,'0')} ${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}`;
 
-        // 直接更新前端状态并重新渲染时间线
-        if (!state.nodesData[stepId]) state.nodesData[stepId] =[];
+        // 修复报错核心：如果旧数据存在但不是数组，先将其转换为数组格式
+        if (!state.nodesData[stepId]) {
+            state.nodesData[stepId] = [];
+        } else if (!Array.isArray(state.nodesData[stepId])) {
+            let oldHtml = typeof state.nodesData[stepId] === 'object' ? state.nodesData[stepId].text : state.nodesData[stepId];
+            state.nodesData[stepId] = oldHtml ? [{ time: '早期记录', html: oldHtml }] :[];
+        }
+        
+        // 推入新数据
         state.nodesData[stepId].push({ time, html });
         
         quill.setContents([{ insert: '\n' }]); // 清空编辑器
