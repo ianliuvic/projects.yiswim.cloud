@@ -16,7 +16,7 @@ app.get('/', (req, res) => {
     res.status(404).send('404 Not Found'); 
 });
 
-// 【API】处理用户提交数据的接口（保持不变）
+// 【API1】处理用户提交数据的接口（保持不变）
 app.post('/api/upload', async (req, res) => {
     const { projectId, content } = req.body;
     try {
@@ -33,36 +33,42 @@ app.post('/api/upload', async (req, res) => {
     }
 });
 
-// 【拦截2】生成项目页面
-app.get('/:projectId', async (req, res) => {
+// 【API2 新增】验证 Token 并获取项目数据
+app.post('/api/get-project', async (req, res) => {
+    const { projectId, token } = req.body;
+    try {
+        // 请求一个新的 n8n Webhook 用于验证
+        const n8nUrl = `https://n8n.yiswim.cloud/webhook/verify-project`;
+        const response = await fetch(n8nUrl, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ projectId, token })
+        });
+        
+        const result = await response.json();
+        
+        // 约定 n8n 返回的格式为 { isValid: true, data: {...项目数据...} } 或 { isValid: false }
+        if (response.ok && result.isValid) {
+            res.json({ success: true, data: result.data });
+        } else {
+            res.status(401).json({ success: false, message: "Token 无效或项目不存在" });
+        }
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ success: false, message: "验证服务出错" });
+    }
+});
+
+// 【拦截2 修改】生成项目页面 (不再提前请求数据，只返回空壳+弹窗)
+app.get('/:projectId', (req, res) => {
     const projectId = req.params.projectId;
     if (projectId === 'favicon.ico') return res.status(204).end();
 
-    try {
-        // 请求 n8n 获取当前项目数据
-        const n8nUrl = `https://n8n.yiswim.cloud/webhook-test/check-project?id=${projectId}`;
-        const response = await fetch(n8nUrl);
-        
-        if (!response.ok) return res.status(404).send('404 Not Found');
-
-        // 获取 n8n 返回的数据
-        const projectData = await response.json();
-
-        // 【关键改变】不再拼接 HTML 字符串，而是告诉 Express 去渲染 project.ejs 文件
-        // 并且把 projectId 和 projectData 这两个变量传给模板！
-        res.render('project', { 
-            projectId: projectId, 
-            projectData: projectData 
-        });
-
-    } catch (error) {
-        console.error(error);
-        res.status(500).send('system error');
-    }
+    // 直接渲染页面模板，只传 projectId
+    res.render('project', { 
+        projectId: projectId 
+    });
 });
 
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => console.log(`服务已启动，端口 ${PORT}`));
-
-
-
