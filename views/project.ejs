@@ -218,17 +218,25 @@
         }
 
         // 新的时间线结构：时间线轴在最左侧，记录时间和内容在右侧
-        container.innerHTML = [...records].reverse().map(item => `
+        container.innerHTML = [...records].reverse().map(item => {
+            // 如果存在具体时间且没有 UTC+8 标识，则自动补上
+            let displayTime = item.time || '早期记录';
+            if (displayTime !== '早期记录' && !displayTime.includes('UTC+8')) {
+                displayTime += ' (UTC+8)';
+            }
+            
+            return `
             <div class="timeline-item">
                 <div class="timeline-divider">
                     <div class="timeline-dot"></div>
                 </div>
                 <div class="timeline-content">
-                    <div class="timeline-time">${item.time || '早期记录'}</div>
+                    <div class="timeline-time">${displayTime}</div>
                     <div class="timeline-html">${item.html || ''}</div>
                 </div>
             </div>
-        `).join('');
+            `;
+        }).join('');
     }
 
     // 保存当前记录逻辑（纯前端展示）
@@ -240,11 +248,11 @@
         const html = quill.root.innerHTML;
         const stepId = stepsId[state.activeStepIndex];
         
-        // 格式化当前时间 (年-月-日 时:分)
+        // 格式化当前时间 (年-月-日 时:分) 并加上 UTC+8 标识
         const now = new Date();
-        const time = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-${String(now.getDate()).padStart(2,'0')} ${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}`;
-
-        // 修复报错核心：如果旧数据存在但不是数组，先将其转换为数组格式
+        const time = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-${String(now.getDate()).padStart(2,'0')} ${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')} (UTC+8)`;
+        
+		// 修复报错核心：如果旧数据存在但不是数组，先将其转换为数组格式
         if (!state.nodesData[stepId]) {
             state.nodesData[stepId] = [];
         } else if (!Array.isArray(state.nodesData[stepId])) {
