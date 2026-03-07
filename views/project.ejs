@@ -49,6 +49,8 @@
         .step-node.completed .step-oval { background-color: var(--white); border-color: var(--primary); color: var(--primary); }
         .step-line { flex: 1; height: 8px; background-color: var(--gray-200); z-index: 1; margin: 0 -1px; }
         .step-line.completed { background-color: var(--primary); }
+		/* 增加这行：控制进行中节点右侧线条的半填充效果 (50%可按需改为如 20px 来控制具体长度) */
+        .step-line.half-active { background: linear-gradient(to right, var(--primary) 25%, var(--gray-200) 75%); }
 
         /* ================= 主体区域 ================= */
         .main-panel { background: var(--white); border-radius: var(--radius); box-shadow: 0 4px 20px rgba(0,0,0,0.05); overflow: hidden; display: flex; flex-direction: column; }
@@ -179,7 +181,14 @@
 
             if (index < stepsName.length - 1) {
                 const line = document.createElement('div');
-                line.className = `step-line ${index < state.activeStepIndex ? 'completed' : ''}`;
+                // 判断：如果是已完成则全红，如果是当前进行中则半红
+                let lineClass = 'step-line';
+                if (index < state.activeStepIndex) {
+                    lineClass += ' completed';
+                } else if (index === state.activeStepIndex) {
+                    lineClass += ' half-active';
+                }
+                line.className = lineClass;
                 container.appendChild(line);
             }
         });
