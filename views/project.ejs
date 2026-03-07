@@ -168,26 +168,23 @@
 <script>
     const PROJECT_ID = '<%= projectId %>';
     const statusMap = { '需求': 0, '准备': 1, '生产': 2, '质检': 3, '运输': 4, '完成': 5 };
-    const stepsName = ['需求', '准备', '生产', '质检', '运输', '完成'];
-    const stepsId = ['requirement', 'preparation', 'production', 'qa', 'transport', 'done'];
+    const stepsName =['需求', '准备', '生产', '质检', '运输', '完成'];
+    const stepsId =['requirement', 'preparation', 'production', 'qa', 'transport', 'done'];
 
-    // 定义全局变量
+    // 定义全局变量，不再从模板里直接读取数据
     let BACKEND_DATA = {};
     let state = {};
     let quill;
 
-    // 专属这个项目的本地存储 Key
-    const STORAGE_KEY = `tracker_token_${PROJECT_ID}`;
-
-    // === 核心验证函数封装 ===
-    async function verifyToken(token, isAutoLogin = false) {
+    // === 验证逻辑 ===
+    document.getElementById('verifyBtn').addEventListener('click', async () => {
+        const token = document.getElementById('tokenInput').value.trim();
         const btn = document.getElementById('verifyBtn');
         const errorMsg = document.getElementById('authError');
-        const modal = document.getElementById('authModal');
-        const appContainer = document.getElementById('appContainer');
 
-        // 如果是点击验证，显示"验证中"；如果是自动登录，按钮变成"自动登录中..."
-        btn.innerText = isAutoLogin ? '自动登录中...' : '验证中...';
+        if (!token) return;
+
+        btn.innerText = '验证中...';
         btn.disabled = true;
         errorMsg.style.display = 'none';
 
@@ -200,12 +197,9 @@
             const result = await response.json();
 
             if (result.success) {
-                // 【关键1】验证成功：将 token 存入 localStorage
-                localStorage.setItem(STORAGE_KEY, token);
-                
-                // 隐藏弹窗，显示主界面
-                modal.style.display = 'none';
-                appContainer.style.display = 'block';
+                // 验证成功：隐藏弹窗，显示主界面，初始化数据
+                document.getElementById('authModal').style.display = 'none';
+                document.getElementById('appContainer').style.display = 'block';
                 
                 BACKEND_DATA = result.data;
                 state = {
@@ -213,72 +207,52 @@
                     nodesData: BACKEND_DATA.nodesData || {}
                 };
                 
-                initApp(); // 初始化页面数据
+                initApp(); // 调用初始化函数
             } else {
-                // 【关键2】验证失败：如果是自动登录失败，清除废弃的本地 token，并恢复按钮状态让用户手动输入
-                localStorage.removeItem(STORAGE_KEY);
-                
-                if (!isAutoLogin) {
-                    errorMsg.innerText = result.message || 'Token 错误';
-                    errorMsg.style.display = 'block';
-                }
-                btn.innerText = '验证并进入';
-                btn.disabled = false;
-            }
-        } catch (error) {
-            if (!isAutoLogin) {
-                errorMsg.innerText = '网络错误，请稍后再试';
+                errorMsg.innerText = result.message || 'Token 错误';
                 errorMsg.style.display = 'block';
             }
+        } catch (error) {
+            errorMsg.innerText = '网络错误，请稍后再试';
+            errorMsg.style.display = 'block';
+        } finally {
             btn.innerText = '验证并进入';
             btn.disabled = false;
         }
-    }
-
-    // === 页面加载时的自动判断 ===
-    document.addEventListener('DOMContentLoaded', () => {
-        // 尝试从浏览器获取之前存下来的 Token
-        const savedToken = localStorage.getItem(STORAGE_KEY);
-        
-        if (savedToken) {
-            // 如果有，立刻触发自动验证（跳过手动点击）
-            verifyToken(savedToken, true);
-        }
     });
 
-    // === 用户点击验证按钮 ===
-    document.getElementById('verifyBtn').addEventListener('click', () => {
-        const token = document.getElementById('tokenInput').value.trim();
-        if (token) {
-            verifyToken(token, false);
-        }
-    });
-
-
-    // ============================================
-    // 下面是你原有的界面渲染逻辑，保持不变即可
-    // ============================================
-
+    // === 初始化函数 ===
     function initApp() {
-        quill = new Quill('#editor', {
-            theme: 'snow',
-            placeholder: '在此输入工作记录，支持直接粘贴或拖拽图片...',
-            modules: {
-                toolbar: [
-                    [{ 'header': [1, 2, false] }], ['bold', 'italic', 'underline', 'strike'], [{ 'list': 'ordered' }, { 'list': 'bullet' }], ['blockquote', 'code-block'],
-                    ['image', 'link', 'video'],
-                    ['clean']
-                ],
-                imageResize: { displaySize: true, modules: ['Resize', 'DisplaySize', 'Toolbar'] }
-            }
-        });
+        // 【新增】判断角色权限
+        if (BACKEND_DATA.role === 'read') {
+            // 如果是只读，隐藏编辑器外壳和保存按钮
+            document.querySelector('.editor-container').style.display = 'none';
+            document.querySelector('.editor-footer').style.display = 'none';
+        } else {
+            // 只有是 write 或者是 undefined 时，才初始化编辑器
+            quill = new Quill('#editor', {
+                theme: 'snow',
+                placeholder: '在此输入工作记录，支持直接粘贴或拖拽图片...',
+                modules: {
+                    toolbar:[
+                        [{ 'header':[1, 2, false] }],['bold', 'italic', 'underline', 'strike'],[{ 'list': 'ordered'}, { 'list': 'bullet' }],['blockquote', 'code-block'],
+                        ['image', 'link', 'video'],
+                        ['clean']
+                    ],
+                    imageResize: { displaySize: true, modules:[ 'Resize', 'DisplaySize', 'Toolbar' ] }
+                }
+            });
+        }
+
         renderStepper();
         renderTimeline();
     }
 
+    // 渲染进度条 & 下一步按钮
     function renderStepper() {
         const container = document.getElementById('stepperContainer');
         container.innerHTML = '';
+        
         stepsName.forEach((title, index) => {
             const isCompleted = index < state.activeStepIndex;
             const isActive = index === state.activeStepIndex;
@@ -296,20 +270,30 @@
                 container.appendChild(line);
             }
         });
+
+        // 【修改】如果是 read 角色，或者已经到了最后一步，都隐藏进入下一阶段的按钮
         const nextContainer = document.getElementById('nextStepContainer');
-        nextContainer.style.display = (state.activeStepIndex >= stepsName.length - 1) ? 'none' : 'flex';
+        if (BACKEND_DATA.role === 'read' || state.activeStepIndex >= stepsName.length - 1) {
+            nextContainer.style.display = 'none';
+        } else {
+            nextContainer.style.display = 'flex';
+        }
     }
 
+    // 渲染历史记录区
     function renderTimeline() {
         const stepId = stepsId[state.activeStepIndex];
         document.getElementById('currentStepName').innerText = stepsName[state.activeStepIndex];
+        
         let records = state.nodesData[stepId] || [];
-        if (!Array.isArray(records)) records = (typeof records === 'object' && records.text) ? [{ time: '早期记录', html: records.text }] : [];
+        if (!Array.isArray(records)) records = (typeof records === 'object' && records.text) ? [{time: '早期记录', html: records.text}] : [];
+        
         const container = document.getElementById('timelineContainer');
         if (records.length === 0) {
             container.innerHTML = `<p style="text-align:center; color:#ccc; padding:20px;">暂无该阶段记录</p>`;
             return;
         }
+        
         container.innerHTML = [...records].reverse().map(item => {
             let displayTime = item.time || '早期记录';
             if (displayTime !== '早期记录' && !displayTime.includes('UTC+8')) displayTime += ' (UTC+8)';
@@ -324,24 +308,36 @@
         }).join('');
     }
 
+    // 保存当前记录逻辑
     document.getElementById('submitBtn').addEventListener('click', () => {
+        // 【新增安全判断】如果只读，拦截操作
+        if (BACKEND_DATA.role === 'read') return;
         if (!quill) return;
+
         if (quill.getLength() <= 1 && !quill.root.innerHTML.includes('<img')) return alert("内容为空");
+        
         const html = quill.root.innerHTML;
         const stepId = stepsId[state.activeStepIndex];
+        
         const now = new Date();
-        const time = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')} ${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')} (UTC+8)`;
+        const time = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-${String(now.getDate()).padStart(2,'0')} ${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')} (UTC+8)`;
+        
         if (!state.nodesData[stepId]) state.nodesData[stepId] = [];
         else if (!Array.isArray(state.nodesData[stepId])) {
             let oldHtml = typeof state.nodesData[stepId] === 'object' ? state.nodesData[stepId].text : state.nodesData[stepId];
             state.nodesData[stepId] = oldHtml ? [{ time: '早期记录', html: oldHtml }] : [];
         }
+        
         state.nodesData[stepId].push({ time, html });
         quill.setContents([{ insert: '\n' }]);
         renderTimeline();
     });
 
+    // 进入下一阶段
     document.getElementById('nextStepBtn').addEventListener('click', () => {
+        // 【新增安全判断】如果只读，拦截操作
+        if (BACKEND_DATA.role === 'read') return;
+
         if (state.activeStepIndex < stepsName.length - 1) {
             state.activeStepIndex++;
             renderStepper();
