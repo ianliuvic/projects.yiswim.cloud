@@ -88,9 +88,9 @@
         .timeline-content img { max-width: 100%; height: auto; border-radius: 6px; }
 
         /* ================= 底部：进入下一阶段区域 ================= */
-        .panel-footer { padding: 20px 40px; border-top: 1px solid var(--gray-200); background: var(--white); display: flex; justify-content: flex-end; }
-        .btn-next-step { background: var(--primary); color: #fff; padding: 12px 30px; border-radius: 6px; font-weight: bold; font-size: 15px; }
-        .btn-next-step:hover { background: var(--primary-hover); }
+		.next-step-container { display: flex; justify-content: flex-end; margin-top: 16px; padding-right: 10px; }
+		.link-next-step { color: var(--gray-500); font-size: 14px; text-decoration: underline; cursor: pointer; transition: color 0.2s; }
+		.link-next-step:hover { color: var(--primary); }
     </style>
 </head>
 <body>
@@ -121,12 +121,14 @@
             <div class="timeline" id="timelineContainer"></div>
         </div>
         
-        <!-- 卡片最底部：进入下一阶段 -->
-        <div class="panel-footer" id="nextStepContainer">
-            <button class="btn-next-step" id="nextStepBtn">进入下一阶段</button>
-        </div>
+	</div> <!-- 这是 <div class="main-panel"> 的闭合标签 -->
+
+    <!-- 卡片外部右下方：进入下一阶段 -->
+    <div class="next-step-container" id="nextStepContainer">
+        <span class="link-next-step" id="nextStepBtn">进入下一阶段 ></span>
     </div>
-</div>
+	
+</div> <!-- 这是 <div class="container"> 的闭合标签 -->
 
 <script src="https://cdn.quilljs.com/1.3.6/quill.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/quill-image-resize-module@3.0.0/image-resize.min.js"></script>
