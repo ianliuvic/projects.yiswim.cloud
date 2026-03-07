@@ -42,17 +42,25 @@
 
         /* ================= 进度条 ================= */
         .stepper-container { display: flex; align-items: center; justify-content: space-between; margin: 40px 0; }
-        .step-node { display: flex; align-items: center; z-index: 2; cursor: pointer; }
+        .step-node { display: flex; align-items: center; z-index: 2; cursor: pointer; transition: all 0.2s; }
         .step-oval { 
             width: 100px; height: 40px; border-radius: 20px; background-color: var(--white); 
             border: 2px solid var(--gray-300); color: var(--gray-500); 
             display: flex; align-items: center; justify-content: center; font-size: 14px; font-weight: 600; 
+            transition: all 0.2s;
         }
+        
+        /* 状态样式：正在查看(实心红)、已到达(空心红)、未到达(灰色锁定) */
         .step-node.active .step-oval { background-color: var(--primary); border-color: var(--primary); color: var(--white); }
         .step-node.completed .step-oval { background-color: var(--white); border-color: var(--primary); color: var(--primary); }
-        .step-line { flex: 1; height: 8px; background-color: var(--gray-200); z-index: 1; margin: 0 -1px; }
+        
+        /* 新增：锁定状态(未来的节点) */
+        .step-node.locked { cursor: not-allowed; }
+        .step-node.locked .step-oval { background-color: var(--gray-100); border-color: var(--gray-200); color: var(--gray-400); }
+
+        .step-line { flex: 1; height: 8px; background-color: var(--gray-200); z-index: 1; margin: 0 -1px; transition: all 0.3s; }
         .step-line.completed { background-color: var(--primary); }
-        .step-line.half-active { background: linear-gradient(to right, var(--primary) 25%, var(--gray-200) 75%); }
+        .step-line.half-active { background: linear-gradient(to right, var(--primary) 50%, var(--gray-200) 50%); }
 
         /* ================= 主体区域 ================= */
         .main-panel { background: var(--white); border-radius: var(--radius); box-shadow: 0 4px 20px rgba(0,0,0,0.05); overflow: hidden; display: flex; flex-direction: column; }
@@ -152,7 +160,7 @@
         </div>
 
         <div class="history-section">
-            <div class="history-title">历史数据</div>
+            <div class="history-title">历史记录</div>
             <div class="timeline" id="timelineContainer"></div>
         </div>
     </div> 
@@ -176,17 +184,15 @@
     let state = {};
     let quill;
 
-    // === 专属这个项目的本地存储 Key (来自脚本1) ===
     const STORAGE_KEY = `tracker_token_${PROJECT_ID}`;
 
-    // === 核心验证函数封装 (融合了脚本1的缓存逻辑 + 脚本2的数据获取) ===
+    // === 核心验证函数 ===
     async function verifyToken(token, isAutoLogin = false) {
         const btn = document.getElementById('verifyBtn');
         const errorMsg = document.getElementById('authError');
         const modal = document.getElementById('authModal');
         const appContainer = document.getElementById('appContainer');
 
-        // UI状态更新
         btn.innerText = isAutoLogin ? '自动登录中...' : '验证中...';
         btn.disabled = true;
         errorMsg.style.display = 'none';
@@ -200,24 +206,25 @@
             const result = await response.json();
 
             if (result.success) {
-                // 【关键1】验证成功：将 token 存入 localStorage
                 localStorage.setItem(STORAGE_KEY, token);
                 
-                // 隐藏弹窗，显示主界面
                 modal.style.display = 'none';
                 appContainer.style.display = 'block';
                 
                 BACKEND_DATA = result.data;
+                
+                // 【核心修改】将数据分为 maxStepIndex (真实最高进度) 和 activeStepIndex (用户正在查看的视图)
+                const realStatusIndex = BACKEND_DATA.project_status ? (statusMap[BACKEND_DATA.project_status] || 0) : 0;
+                
                 state = {
-                    activeStepIndex: BACKEND_DATA.project_status ? (statusMap[BACKEND_DATA.project_status] || 0) : 0,
+                    maxStepIndex: realStatusIndex,      // 锁定状态边界，代表项目当前进展到了哪里
+                    activeStepIndex: realStatusIndex,   // 进入时，默认查看最新的进展
                     nodesData: BACKEND_DATA.nodesData || {}
                 };
                 
-                initApp(); // 初始化页面 (包含权限判断)
+                initApp(); 
             } else {
-                // 【关键2】验证失败：如果是自动登录失败，清除废弃的本地 token
                 localStorage.removeItem(STORAGE_KEY);
-                
                 if (!isAutoLogin) {
                     errorMsg.innerText = result.message || 'Token 错误';
                     errorMsg.style.display = 'block';
@@ -235,7 +242,6 @@
         }
     }
 
-    // === 页面加载时的自动判断 (来自脚本1) ===
     document.addEventListener('DOMContentLoaded', () => {
         const savedToken = localStorage.getItem(STORAGE_KEY);
         if (savedToken) {
@@ -243,24 +249,18 @@
         }
     });
 
-    // === 用户手动点击验证按钮 ===
     document.getElementById('verifyBtn').addEventListener('click', () => {
         const token = document.getElementById('tokenInput').value.trim();
-        if (token) {
-            verifyToken(token, false);
-        }
+        if (token) verifyToken(token, false);
     });
 
-    // === 初始化函数 (来自脚本2，增加了权限判断) ===
     function initApp() {
-        // 【权限判断】如果是 'read' 模式，隐藏编辑器区域和底部按钮
         if (BACKEND_DATA.role === 'read') {
             const editorContainer = document.querySelector('.editor-container');
             const editorFooter = document.querySelector('.editor-footer');
             if (editorContainer) editorContainer.style.display = 'none';
             if (editorFooter) editorFooter.style.display = 'none';
         } else {
-            // 只有非只读模式才初始化 Quill 编辑器
             quill = new Quill('#editor', {
                 theme: 'snow',
                 placeholder: '在此输入工作记录，支持直接粘贴或拖拽图片...',
@@ -278,49 +278,81 @@
         renderTimeline();
     }
 
-    // === 渲染进度条 (来自脚本2，包含权限判断) ===
+    // === 【核心修改】渲染进度条的判定逻辑 ===
     function renderStepper() {
         const container = document.getElementById('stepperContainer');
         container.innerHTML = '';
+        
         stepsName.forEach((title, index) => {
-            const isCompleted = index < state.activeStepIndex;
-            const isActive = index === state.activeStepIndex;
+            const isLocked = index > state.maxStepIndex;             // 大于当前进度的均为锁定(不允许点击)
+            const isReached = index <= state.maxStepIndex;           // 已经到达的进度
+            const isActiveView = index === state.activeStepIndex;    // 目前用户正在点击查看的节点
+            
             const node = document.createElement('div');
-            node.className = `step-node ${isActive ? 'active' : ''} ${isCompleted ? 'completed' : ''}`;
+            let classNames = ['step-node'];
+            
+            // 判定节点样式：
+            if (isLocked) {
+                classNames.push('locked'); // 灰色的未来节点
+            } else {
+                if (isActiveView) {
+                    classNames.push('active'); // 实心红，代表正在查看
+                } else {
+                    classNames.push('completed'); // 空心红，代表已经经历过但当前没在查看
+                }
+            }
+            
+            node.className = classNames.join(' ');
             node.innerHTML = `<div class="step-oval">${title}</div>`;
-            // 点击节点切换查看历史记录
-            node.onclick = () => { state.activeStepIndex = index; renderStepper(); renderTimeline(); };
+            
+            // 【核心修改】只有未锁定的节点允许点击查看历史
+            if (!isLocked) {
+                node.onclick = () => { 
+                    state.activeStepIndex = index; 
+                    renderStepper(); 
+                    renderTimeline(); 
+                };
+            }
+            
             container.appendChild(node);
+            
+            // 判定节点间线条样式
             if (index < stepsName.length - 1) {
                 const line = document.createElement('div');
                 let lineClass = 'step-line';
-                if (index < state.activeStepIndex) lineClass += ' completed';
-                else if (index === state.activeStepIndex) lineClass += ' half-active';
+                if (index < state.maxStepIndex) {
+                    lineClass += ' completed'; // 完全变成红线
+                } else if (index === state.maxStepIndex) {
+                    lineClass += ' half-active'; // 一半红一半灰，代表正在该节点推进
+                }
                 line.className = lineClass;
                 container.appendChild(line);
             }
         });
 
-        // 【权限判断】如果是 read 角色，或者已经到了最后一步，隐藏"进入下一阶段"区域
         const nextContainer = document.getElementById('nextStepContainer');
-        if (BACKEND_DATA.role === 'read' || state.activeStepIndex >= stepsName.length - 1) {
+        // 【核心修改】隐藏进入下一阶段按钮的条件：只读模式 OR 已经是最后一步 OR 用户正在看以前的历史节点
+        if (BACKEND_DATA.role === 'read' || state.maxStepIndex >= stepsName.length - 1 || state.activeStepIndex !== state.maxStepIndex) {
             nextContainer.style.display = 'none';
         } else {
             nextContainer.style.display = 'flex';
         }
     }
 
-    // === 渲染时间轴 (通用) ===
     function renderTimeline() {
         const stepId = stepsId[state.activeStepIndex];
         document.getElementById('currentStepName').innerText = stepsName[state.activeStepIndex];
+        
+        // 修正原先直接操作导致的对象引用错乱，先深拷贝一下需要的数据防止渲染污染
         let records = state.nodesData[stepId] || [];
         if (!Array.isArray(records)) records = (typeof records === 'object' && records.text) ? [{ time: '早期记录', html: records.text }] : [];
+        
         const container = document.getElementById('timelineContainer');
         if (records.length === 0) {
             container.innerHTML = `<p style="text-align:center; color:#ccc; padding:20px;">暂无该阶段记录</p>`;
             return;
         }
+        
         container.innerHTML = [...records].reverse().map(item => {
             let displayTime = item.time || '早期记录';
             if (displayTime !== '早期记录' && !displayTime.includes('UTC+8')) displayTime += ' (UTC+8)';
@@ -335,15 +367,13 @@
         }).join('');
     }
 
-    // === 提交记录按钮 (来自脚本2，增加权限拦截) ===
     document.getElementById('submitBtn').addEventListener('click', () => {
-        // 安全拦截：只读模式不可提交
         if (BACKEND_DATA.role === 'read') return;
         if (!quill) return;
 
         if (quill.getLength() <= 1 && !quill.root.innerHTML.includes('<img')) return alert("内容为空");
         const html = quill.root.innerHTML;
-        const stepId = stepsId[state.activeStepIndex];
+        const stepId = stepsId[state.activeStepIndex]; // 保证提交到当前点击查看的节点
         const now = new Date();
         const time = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')} ${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')} (UTC+8)`;
         
@@ -352,20 +382,23 @@
             let oldHtml = typeof state.nodesData[stepId] === 'object' ? state.nodesData[stepId].text : state.nodesData[stepId];
             state.nodesData[stepId] = oldHtml ? [{ time: '早期记录', html: oldHtml }] : [];
         }
+        
         state.nodesData[stepId].push({ time, html });
         quill.setContents([{ insert: '\n' }]);
         renderTimeline();
     });
 
-    // === 进入下一阶段按钮 (来自脚本2，增加权限拦截) ===
     document.getElementById('nextStepBtn').addEventListener('click', () => {
-        // 安全拦截：只读模式不可操作
         if (BACKEND_DATA.role === 'read') return;
 
-        if (state.activeStepIndex < stepsName.length - 1) {
-            state.activeStepIndex++;
+        // 【核心修改】点击下一阶段时，改变 maxStepIndex（项目真实进度）
+        if (state.maxStepIndex < stepsName.length - 1) {
+            state.maxStepIndex++;
+            state.activeStepIndex = state.maxStepIndex; // 自动跳转到新的阶段视图
             renderStepper();
             renderTimeline();
+            
+            // 注意：这里仅修改了前端的进度显示，如有需要，后续你可以将新的 maxStepIndex 发送给 n8n 进行保存
         }
     });
 </script>
