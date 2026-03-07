@@ -25,7 +25,10 @@
 
         * { box-sizing: border-box; margin: 0; padding: 0; }
         body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background-color: var(--bg-color); color: var(--gray-800); padding: 20px; line-height: 1.5; }
-        .container { margin: 0 auto; max-width: 900px; }
+        
+        /* 默认隐藏主内容区，验证成功后再显示 */
+        .container { margin: 0 auto; max-width: 900px; display: none; }
+        
         button { cursor: pointer; border: none; font-family: inherit; transition: all 0.2s; }
 
         /* ================= 顶部信息 ================= */
@@ -49,7 +52,6 @@
         .step-node.completed .step-oval { background-color: var(--white); border-color: var(--primary); color: var(--primary); }
         .step-line { flex: 1; height: 8px; background-color: var(--gray-200); z-index: 1; margin: 0 -1px; }
         .step-line.completed { background-color: var(--primary); }
-		/* 增加这行：控制进行中节点右侧线条的半填充效果 (50%可按需改为如 20px 来控制具体长度) */
         .step-line.half-active { background: linear-gradient(to right, var(--primary) 25%, var(--gray-200) 75%); }
 
         /* ================= 主体区域 ================= */
@@ -72,14 +74,10 @@
         
         .timeline { display: flex; flex-direction: column; }
         .timeline-item { display: flex; align-items: stretch; position: relative; } 
-        
-        /* 左侧时间线轴 */
         .timeline-divider { width: 24px; display: flex; flex-direction: column; align-items: center; flex-shrink: 0; margin-right: 16px; position: relative; }
         .timeline-dot { width: 12px; height: 12px; border-radius: 50%; background: var(--white); border: 2px solid var(--primary); z-index: 2; margin-top: 6px; flex-shrink: 0; }
         .timeline-divider::after { content: ""; position: absolute; top: 22px; bottom: -10px; width: 2px; background: var(--gray-200); z-index: 1; }
         .timeline-item:last-child .timeline-divider::after { display: none; }
-        
-        /* 右侧内容区 (时间在上方，内容在下方) */
         .timeline-content { flex: 1; padding-bottom: 30px; line-height: 1.6; font-size: 15px; color: var(--gray-800); word-break: break-all; }
         .timeline-time { font-size: 13px; color: var(--gray-500); margin-bottom: 6px; font-weight: 500; }
         .timeline-html p { margin: 0 0 10px 0; }
@@ -88,14 +86,53 @@
         .timeline-html img { max-width: 100%; height: auto; border-radius: 6px; }
 
         /* ================= 底部：进入下一阶段区域 ================= */
-		.next-step-container { display: flex; justify-content: flex-end; margin-top: 16px; padding-right: 10px; }
-		.link-next-step { color: var(--gray-500); font-size: 14px; text-decoration: underline; cursor: pointer; transition: color 0.2s; }
-		.link-next-step:hover { color: var(--primary); }
+        .next-step-container { display: flex; justify-content: flex-end; margin-top: 16px; padding-right: 10px; }
+        .link-next-step { color: var(--gray-500); font-size: 14px; text-decoration: underline; cursor: pointer; transition: color 0.2s; }
+        .link-next-step:hover { color: var(--primary); }
+
+        /* ================= 新增：身份验证弹窗样式 ================= */
+        .auth-modal-overlay {
+            position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
+            background: rgba(0, 0, 0, 0.5); backdrop-filter: blur(5px);
+            display: flex; justify-content: center; align-items: center; z-index: 9999;
+        }
+        .auth-modal {
+            background: var(--white); padding: 30px; border-radius: var(--radius);
+            width: 90%; max-width: 400px; box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+            text-align: center;
+        }
+        .auth-modal h2 { margin-bottom: 10px; color: var(--gray-800); }
+        .auth-modal p { margin-bottom: 20px; color: var(--gray-500); font-size: 14px; }
+        .auth-modal input {
+            width: 100%; padding: 12px; border: 1px solid var(--gray-300);
+            border-radius: 6px; margin-bottom: 15px; font-size: 16px; outline: none;
+            text-align: center;
+        }
+        .auth-modal input:focus { border-color: var(--primary); }
+        .auth-modal button {
+            width: 100%; padding: 12px; background: var(--primary); color: var(--white);
+            border-radius: 6px; font-size: 16px; font-weight: bold; border: none; cursor: pointer;
+        }
+        .auth-modal button:hover { background: var(--primary-hover); }
+        .auth-modal button:disabled { background: var(--gray-400); cursor: not-allowed; }
+        .auth-error { color: #dc2626; font-size: 13px; margin-top: 10px; display: none; }
     </style>
 </head>
 <body>
 
-<div class="container">
+<!-- 新增：身份验证弹窗 -->
+<div id="authModal" class="auth-modal-overlay">
+    <div class="auth-modal">
+        <h2>安全验证</h2>
+        <p>请输入项目的访问 Token</p>
+        <input type="password" id="tokenInput" placeholder="输入 Token..." />
+        <button id="verifyBtn">验证并进入</button>
+        <div id="authError" class="auth-error">Token 错误，请重试</div>
+    </div>
+</div>
+
+<!-- 主界面区域 (初始通过 CSS display:none 隐藏) -->
+<div class="container" id="appContainer">
     <div class="project-header">
         <div class="header-left">
             <h1>跟踪项目: <span id="currentStepName">需求</span></h1>
@@ -106,179 +143,8 @@
     <div class="stepper-container" id="stepperContainer"></div>
 
     <div class="main-panel">
-        <!-- 富文本编辑区 -->
         <div class="editor-container">
             <div id="editor"></div>
         </div>
 
-        <!-- 仅保存当前记录的按钮 -->
         <div class="editor-footer">
-            <button class="btn-submit" id="submitBtn">保存当前记录</button>
-        </div>
-
-        <!-- 历史记录展示区 -->
-        <div class="history-section">
-            <div class="history-title">历史数据</div>
-            <div class="timeline" id="timelineContainer"></div>
-        </div>
-        
-	</div> <!-- 这是 <div class="main-panel"> 的闭合标签 -->
-
-    <!-- 卡片外部右下方：进入下一阶段 -->
-    <div class="next-step-container" id="nextStepContainer">
-        <span class="link-next-step" id="nextStepBtn">进入下一阶段 ></span>
-    </div>
-	
-</div> <!-- 这是 <div class="container"> 的闭合标签 -->
-
-<script src="https://cdn.quilljs.com/1.3.6/quill.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/quill-image-resize-module@3.0.0/image-resize.min.js"></script>
-
-<script>
-    const PROJECT_ID = '<%= projectId %>';
-    const BACKEND_DATA = <%- JSON.stringify(projectData) %>;
-    const statusMap = { '需求': 0, '准备': 1, '生产': 2, '质检': 3, '运输': 4, '完成': 5 };
-    const stepsName =['需求', '准备', '生产', '质检', '运输', '完成'];
-    const stepsId =['requirement', 'preparation', 'production', 'qa', 'transport', 'done'];
-
-    let state = {
-        activeStepIndex: BACKEND_DATA.project_status ? (statusMap[BACKEND_DATA.project_status] || 0) : 0,
-        nodesData: BACKEND_DATA.nodesData || {}
-    };
-
-    // 初始化 Quill 编辑器
-    var quill = new Quill('#editor', {
-        theme: 'snow',
-        placeholder: '在此输入工作记录，支持直接粘贴或拖拽图片...',
-        modules: {
-            toolbar:[
-                [{ 'header':[1, 2, false] }],['bold', 'italic', 'underline', 'strike'],[{ 'list': 'ordered'}, { 'list': 'bullet' }],['blockquote', 'code-block'],
-                ['image', 'link', 'video'],
-                ['clean']
-            ],
-            imageResize: {
-                displaySize: true, 
-                modules:[ 'Resize', 'DisplaySize', 'Toolbar' ]
-            }
-        }
-    });
-
-    // 渲染进度条 & 底部按钮显示逻辑
-    function renderStepper() {
-        const container = document.getElementById('stepperContainer');
-        container.innerHTML = '';
-        
-        stepsName.forEach((title, index) => {
-            const isCompleted = index < state.activeStepIndex;
-            const isActive = index === state.activeStepIndex;
-            
-            const node = document.createElement('div');
-            node.className = `step-node ${isActive ? 'active' : ''} ${isCompleted ? 'completed' : ''}`;
-            node.innerHTML = `<div class="step-oval">${title}</div>`;
-            node.onclick = () => { state.activeStepIndex = index; renderStepper(); renderTimeline(); };
-            container.appendChild(node);
-
-            if (index < stepsName.length - 1) {
-                const line = document.createElement('div');
-                // 判断：如果是已完成则全红，如果是当前进行中则半红
-                let lineClass = 'step-line';
-                if (index < state.activeStepIndex) {
-                    lineClass += ' completed';
-                } else if (index === state.activeStepIndex) {
-                    lineClass += ' half-active';
-                }
-                line.className = lineClass;
-                container.appendChild(line);
-            }
-        });
-
-        // 如果已经是最后一步，彻底隐藏底部的"进入下一阶段"区域
-        const nextContainer = document.getElementById('nextStepContainer');
-        if (state.activeStepIndex >= stepsName.length - 1) {
-            nextContainer.style.display = 'none';
-        } else {
-            nextContainer.style.display = 'flex';
-        }
-    }
-
-    // 渲染时间线
-    function renderTimeline() {
-        const stepId = stepsId[state.activeStepIndex];
-        document.getElementById('currentStepName').innerText = stepsName[state.activeStepIndex];
-        
-        let records = state.nodesData[stepId] ||[];
-        if (!Array.isArray(records)) {
-            records = (typeof records === 'object' && records.text) ?[{time: '早期记录', html: records.text}] :[];
-        }
-
-        const container = document.getElementById('timelineContainer');
-        if (records.length === 0) {
-            container.innerHTML = `<p style="text-align:center; color:#ccc; padding:20px;">暂无该阶段记录</p>`;
-            return;
-        }
-
-        // 新的时间线结构：时间线轴在最左侧，记录时间和内容在右侧
-        container.innerHTML = [...records].reverse().map(item => {
-            // 如果存在具体时间且没有 UTC+8 标识，则自动补上
-            let displayTime = item.time || '早期记录';
-            if (displayTime !== '早期记录' && !displayTime.includes('UTC+8')) {
-                displayTime += ' (UTC+8)';
-            }
-            
-            return `
-            <div class="timeline-item">
-                <div class="timeline-divider">
-                    <div class="timeline-dot"></div>
-                </div>
-                <div class="timeline-content">
-                    <div class="timeline-time">${displayTime}</div>
-                    <div class="timeline-html">${item.html || ''}</div>
-                </div>
-            </div>
-            `;
-        }).join('');
-    }
-
-    // 保存当前记录逻辑（纯前端展示）
-    document.getElementById('submitBtn').addEventListener('click', () => {
-        if (quill.getLength() <= 1 && !quill.root.innerHTML.includes('<img')) {
-            return alert("内容为空");
-        }
-
-        const html = quill.root.innerHTML;
-        const stepId = stepsId[state.activeStepIndex];
-        
-        // 格式化当前时间 (年-月-日 时:分) 并加上 UTC+8 标识
-        const now = new Date();
-        const time = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-${String(now.getDate()).padStart(2,'0')} ${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')} (UTC+8)`;
-        
-		// 修复报错核心：如果旧数据存在但不是数组，先将其转换为数组格式
-        if (!state.nodesData[stepId]) {
-            state.nodesData[stepId] = [];
-        } else if (!Array.isArray(state.nodesData[stepId])) {
-            let oldHtml = typeof state.nodesData[stepId] === 'object' ? state.nodesData[stepId].text : state.nodesData[stepId];
-            state.nodesData[stepId] = oldHtml ? [{ time: '早期记录', html: oldHtml }] :[];
-        }
-        
-        // 推入新数据
-        state.nodesData[stepId].push({ time, html });
-        
-        quill.setContents([{ insert: '\n' }]); // 清空编辑器
-        renderTimeline(); // 刷新下方历史数据区域
-    });
-
-    // 点击进入下一阶段逻辑
-    document.getElementById('nextStepBtn').addEventListener('click', () => {
-        if (state.activeStepIndex < stepsName.length - 1) {
-            state.activeStepIndex++;
-            renderStepper();
-            renderTimeline();
-        }
-    });
-
-    // 初始化渲染
-    renderStepper();
-    renderTimeline();
-</script>
-</body>
-</html>
