@@ -38,7 +38,8 @@ app.post('/api/get-project', async (req, res) => {
     const { projectId, token } = req.body;
     try {
         // 请求一个新的 n8n Webhook 用于验证
-        const n8nUrl = `https://n8n.yiswim.cloud/webhook-test/verify-project`;
+        //const n8nUrl = `https://n8n.yiswim.cloud/webhook-test/verify-project`;
+        const n8nUrl = `http://n8n-ywock00sw4ko80c4w4ogs8so:5678/webhook-test/verify-project`;
         const response = await fetch(n8nUrl, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -72,4 +73,5 @@ app.get('/:projectId', (req, res) => {
 
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => console.log(`服务已启动，端口 ${PORT}`));
+
 
