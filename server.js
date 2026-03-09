@@ -17,20 +17,36 @@ app.get('/', (req, res) => {
 });
 
 // 【API1】处理用户提交数据的接口（保持不变）
-app.post('/api/upload', async (req, res) => {
-    const { projectId, content } = req.body;
+// 【API】增量保存单条记录（推荐新名称）
+app.post('/api/append-record', async (req, res) => {
+    const { projectId, stepId, newRecord } = req.body;
+    
+    if (!projectId || !stepId || !newRecord) {
+        return res.status(400).json({ success: false, message: "缺少必要参数" });
+    }
+
     try {
-        const n8nUploadUrl = `https://n8n.yiswim.cloud/webhook/upload-to-notion`;
-        const response = await fetch(n8nUploadUrl, {
+        const n8nUrl = `http://n8n-ywock00sw4ko80c4w4ogs8so:5678/webhook-test/append-record`;  // ← 改成你上面的 webhook 路径
+        const response = await fetch(n8nUrl, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ projectId, content })
+            body: JSON.stringify({ projectId, stepId, newRecord })
         });
-        if (response.ok) res.json({ success: true });
-        else res.status(500).json({ success: false, message: "n8n 处理失败" });
+
+        if (response.ok) {
+            res.json({ success: true });
+        } else {
+            res.status(500).json({ success: false, message: "n8n 处理失败" });
+        }
     } catch (error) {
-        res.status(500).json({ success: false, message: "服务器内部错误" });
+        console.error(error);
+        res.status(500).json({ success: false, message: "服务器错误" });
     }
+});
+
+// （可选）保留旧接口做兼容，后面可以删除
+app.post('/api/upload', (req, res) => {
+    res.status(410).json({ message: "此接口已废弃，请使用 /api/append-record" });
 });
 
 // 【API2 新增】验证 Token 并获取项目数据
@@ -74,6 +90,7 @@ app.get('/:projectId', (req, res) => {
 
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => console.log(`服务已启动，端口 ${PORT}`));
+
 
 
 
