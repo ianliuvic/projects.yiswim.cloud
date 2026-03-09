@@ -1,5 +1,7 @@
 const express = require('express');
 const path = require('path');
+const multer = require('multer');
+const fs = require('fs');
 const app = express();
 
 // 1. 告诉 Express 我们要使用 EJS 作为模板引擎
@@ -91,6 +93,52 @@ app.get('/:projectId', (req, res) => {
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => console.log(`服务已启动，端口 ${PORT}`));
 
+
+// 【图片上传】
+// 使用 Coolify 共享的持久化目录（与 n8n 容器映射的路径一致）
+const UPLOAD_DIR = '/n8n_files/uploads';  // 注意：这个路径在 Node.js 容器里必须能写
+
+// 确保目录存在（Coolify 容器启动时可能需要手动创建）
+if (!fs.existsSync(UPLOAD_DIR)) {
+  fs.mkdirSync(UPLOAD_DIR, { recursive: true });
+}
+
+const storage = multer.diskStorage({
+  destination: (req, file, cb) => {
+    cb(null, UPLOAD_DIR);
+  },
+  filename: (req, file, cb) => {
+    const uniqueName = `${Date.now()}-${Math.random().toString(36).slice(2, 10)}${path.extname(file.originalname)}`;
+    cb(null, uniqueName);
+  }
+});
+
+const upload = multer({
+  storage,
+  limits: { fileSize: 10 * 1024 * 1024 }, // 10MB 限制
+  fileFilter: (req, file, cb) => {
+    if (!file.mimetype.startsWith('image/')) {
+      return cb(new Error('只允许上传图片'));
+    }
+    cb(null, true);
+  }
+});
+
+// 图片上传接口
+app.post('/api/upload-image', upload.single('image'), (req, res) => {
+  if (!req.file) {
+    return res.status(400).json({ success: false, message: '没有文件' });
+  }
+
+  // 生成对外可访问的 URL，使用你的子域名
+  const fileName = req.file.filename;
+  const imageUrl = `https://files.yiswim.cloud/uploads/${fileName}`;
+
+  res.json({
+    success: true,
+    url: imageUrl
+  });
+});
 
 
 
