@@ -680,51 +680,64 @@
         }).join('');
     }
 
-    // ====================== 保存按钮 ======================
+    // ====================== 保存按钮（增量发送） ======================
     document.getElementById('submitBtn').addEventListener('click', async () => {
         if (BACKEND_DATA.role === 'read') return;
         if (!quill) return;
-
+    
         if (quill.getLength() <= 1 && !quill.root.innerHTML.includes('<img')) {
-            alert(i18next.t('alert.empty'));
+            alert(i18next.t('alert.empty') || "内容为空");
             return;
         }
-
+    
         const html = quill.root.innerHTML;
         const stepId = stepsId[state.activeStepIndex]; 
         const now = new Date();
         const time = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')} ${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')} (UTC+8)`;
         
+        const newRecord = { time, html };
+    
+        // 1. 乐观更新：立即显示在前端
         if (!state.nodesData[stepId]) state.nodesData[stepId] = [];
-        
-        state.nodesData[stepId].push({ time, html });
+        state.nodesData[stepId].push(newRecord);
         quill.setContents([{ insert: '\n' }]);
         renderTimeline();
-
+    
+        // 2. 发送给 n8n（只传增量）
         const btn = document.getElementById('submitBtn');
         const originalText = btn.innerText;
-        btn.innerText = i18next.t('modal.verifying');   // 复用“验证中...”文案也行，这里用 loading 感
+        btn.innerText = "保存中...";
         btn.disabled = true;
-
+    
         try {
-            await fetch('/api/upload', {
+            const res = await fetch('/api/append-record', {   // ← 新接口
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ 
                     projectId: PROJECT_ID, 
-                    content: state.nodesData 
+                    stepId: stepId,
+                    newRecord: newRecord 
                 })
             });
-            btn.innerText = i18next.t('button.save') + " ✓";
-            setTimeout(() => { 
-                btn.innerText = originalText; 
-                btn.disabled = false; 
-            }, 1500);
+    
+            const data = await res.json();
+            if (data.success) {
+                btn.innerText = "已保存 ✓";
+                setTimeout(() => { 
+                    btn.innerText = originalText; 
+                    btn.disabled = false; 
+                }, 1200);
+            } else {
+                throw new Error("保存失败");
+            }
         } catch(e) {
-            alert(i18next.t('alert.save_fail'));
+            alert(i18next.t('alert.save_fail') || "保存失败");
+            // 失败时回滚（可选）
+            state.nodesData[stepId].pop();
+            renderTimeline();
             btn.innerText = originalText;
             btn.disabled = false;
-        } 
+        }
     });
 
     // ====================== 下一阶段 ======================
