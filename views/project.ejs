@@ -26,12 +26,10 @@
         * { box-sizing: border-box; margin: 0; padding: 0; }
         body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background-color: var(--bg-color); color: var(--gray-800); padding: 20px; line-height: 1.5; }
         
-        /* 默认隐藏主内容区，验证成功后再显示 */
         .container { margin: 0 auto; max-width: 900px; display: none; }
         
         button { cursor: pointer; border: none; font-family: inherit; transition: all 0.2s; }
 
-        /* ================= 品牌头部 ================= */
         .brand-header {
             display: flex; align-items: center; margin-bottom: 24px;
         }
@@ -43,7 +41,6 @@
             font-size: 22px; font-weight: bold; color: var(--primary); letter-spacing: 1px;
         }
 
-        /* ================= 项目信息 Grid ================= */
         .project-info-grid {
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); 
@@ -60,7 +57,6 @@
         .info-value.mono { font-family: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, Courier, monospace; font-size: 14px; color: var(--gray-500); }
         .info-value.highlight { color: var(--primary); }
 
-        /* ================= 进度条 ================= */
         .stepper-container { display: flex; align-items: center; justify-content: space-between; margin: 40px 0; }
         .step-node { display: flex; align-items: center; z-index: 2; cursor: pointer; transition: all 0.2s; }
         .step-oval { 
@@ -77,7 +73,6 @@
         .step-line.completed { background-color: var(--primary); }
         .step-line.half-active { background: linear-gradient(to right, var(--primary) 25%, var(--gray-200) 75%); }
 
-        /* ================= 主体区域 ================= */
         .main-panel { background: var(--white); border-radius: var(--radius); box-shadow: 0 4px 20px rgba(0,0,0,0.05); overflow: hidden; display: flex; flex-direction: column; }
         .ql-toolbar.ql-snow { border: none; border-bottom: 1px solid var(--gray-200); background: #fafafa; padding: 12px 40px; }
         .ql-container.ql-snow { border: none; font-family: inherit; }
@@ -87,7 +82,6 @@
         .btn-submit { background: var(--primary); color: var(--white); border: none; padding: 10px 24px; border-radius: 6px; font-weight: bold; }
         .btn-submit:hover { background: var(--primary-hover); }
 
-        /* ================= 历史记录区 ================= */
         .history-section { padding: 40px; background: #fafafa; border-top: 1px solid var(--gray-100); flex-grow: 1; }
         .history-title { font-size: 16px; font-weight: bold; color: var(--gray-800); border-bottom: 1px solid var(--gray-200); padding-bottom: 12px; margin-bottom: 24px; }
         
@@ -148,6 +142,30 @@
         .auth-modal button:hover { background: var(--primary-hover); }
         .auth-modal button:disabled { background: var(--gray-400); cursor: not-allowed; }
         .auth-error { color: #dc2626; font-size: 13px; margin-top: 10px; display: none; }
+
+        /* 新增：起始记录（项目创建）视觉强调 */
+        .timeline-item.starting-record {
+            margin-bottom: 32px;
+            padding-bottom: 20px;
+            border-bottom: 1px dashed var(--primary);
+            background: rgba(170, 0, 0, 0.03);
+            border-radius: 8px;
+        }
+
+        .timeline-item.starting-record .timeline-dot {
+            background: var(--primary);
+            border-color: white;
+            box-shadow: 0 0 0 4px rgba(170,0,0,0.25);
+        }
+
+        .timeline-item.starting-record .starting-header {
+            font-weight: bold;
+            color: var(--primary);
+            margin-bottom: 12px;
+            font-size: 15px;
+            padding: 8px 0;
+            border-bottom: 1px solid rgba(170,0,0,0.15);
+        }
     </style>
 </head>
 <body>
@@ -165,13 +183,11 @@
 
 <div class="container" id="appContainer">
     
-    <!-- 左上方 Logo 与 系统名称 -->
     <div class="brand-header">
         <img src="/logo.png" alt="Logo" class="brand-logo" onerror="this.src='data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdib3g9IjAgMCAxMDAgMTAwIj48cmVjdCB3aWR0aD0iMTAwIiBoZWlnaHQ9IjEwMCIgZmlsbD0iI2RkZCIvPjwvc3ZnPg=='" />
         <div class="brand-title">项目跟踪系统</div>
     </div>
 
-    <!-- 项目信息 Grid -->
     <div class="project-info-grid">
         <div class="info-item">
             <span class="info-label">项目类型</span>
@@ -213,7 +229,7 @@
     </div>
 
     <div class="page-footer">
-        &copy; <span id="currentYear"></span> 红绣服饰 (Hongxiu Clothing). All Rights Reserved. | 专属定制 · 品质追踪
+        © <span id="currentYear"></span> 红绣服饰 (Hongxiu Clothing). All Rights Reserved. | 专属定制 · 品质追踪
     </div>
 
 </div> 
@@ -222,7 +238,6 @@
 <script src="https://cdn.jsdelivr.net/npm/quill-image-resize-module@3.0.0/image-resize.min.js"></script>
 
 <script>
-    // 动态更新年份
     document.getElementById('currentYear').innerText = new Date().getFullYear();
 
     const PROJECT_ID = '<%= projectId %>';
@@ -236,7 +251,6 @@
 
     const STORAGE_KEY = `tracker_token_${PROJECT_ID}`;
 
-    // 核心验证逻辑
     async function verifyToken(token, isAutoLogin = false) {
         const btn = document.getElementById('verifyBtn');
         const errorMsg = document.getElementById('authError');
@@ -258,59 +272,64 @@
             const result = await response.json();
 
             if (result.success) {
-                // 验证成功，保存 Token 到本地
                 localStorage.setItem(STORAGE_KEY, token);
                 
                 modal.style.display = 'none';
                 appContainer.style.display = 'block';
                 
-                // 提取后端数据 (Node 层已经处理过数组，现在 result.data 是对象)
                 BACKEND_DATA = result.data;
                 const projectData = BACKEND_DATA.project_data || {};
 
-                // 1. 填充顶部 Grid 基础信息
                 document.getElementById('displayType').innerText = projectData.type || '定制生产';
                 document.getElementById('displayUuid').innerText = projectData.uuid || PROJECT_ID;
                 document.getElementById('displayStatus').innerText = projectData.status || '未知';
                 
-                // 角色与权限文本映射
                 let roleText = '访客 (只读)';
                 if (BACKEND_DATA.role === 'admin') roleText = '管理员 (全部权限)';
                 else if (BACKEND_DATA.role === 'write') roleText = '协作者 (可输入记录)';
                 document.getElementById('displayRole').innerText = roleText;
 
-                // 2. 数据标准化处理：提取时间轴数据 (如果有的话)
+                // ─── 修改点 1：改进数据标准化处理 ────────────────────────────────
                 const rawNodes = projectData.nodesData || BACKEND_DATA.nodesData || {};
                 const normalizedNodes = {};
 
                 Object.keys(rawNodes).forEach(key => {
                     const val = rawNodes[key];
+                    
                     if (Array.isArray(val)) {
-                        normalizedNodes[key] = val;
-                    } else if (typeof val === 'object') {
-                        let arr =[];
+                        // 新格式：直接是 [{time, html}, ...]
+                        normalizedNodes[key] = val.map(item => ({
+                            time: item.time || '未知时间',
+                            html: item.html || ''
+                        }));
+                    } else if (typeof val === 'object' && val !== null) {
+                        // 旧格式兼容
+                        let arr = [];
                         if (val.text) arr.push({ time: '订单详情', html: val.text });
                         if (val.logs && Array.isArray(val.logs)) {
-                            val.logs.forEach(log => { arr.push({ time: '系统日志', html: log }); });
+                            val.logs.forEach(log => arr.push({ time: '系统日志', html: log }));
                         }
                         normalizedNodes[key] = arr;
                     } else {
-                        normalizedNodes[key] =[];
+                        normalizedNodes[key] = [];
                     }
                 });
 
-                // 3. 初始化全局状态：根据当前状态映射到对应的步骤索引
+                // 保证每个阶段都有数组
+                stepsId.forEach(step => {
+                    if (!normalizedNodes[step]) normalizedNodes[step] = [];
+                });
+
                 const realStatusIndex = projectData.status ? (statusMap[projectData.status] || 0) : 0;
                 
                 state = {
-                    maxStepIndex: realStatusIndex,      // 项目真实的进度阶段
-                    activeStepIndex: realStatusIndex,   // 当前用户点击查看的视图阶段
+                    maxStepIndex: realStatusIndex,
+                    activeStepIndex: realStatusIndex,
                     nodesData: normalizedNodes
                 };
                 
                 initApp(); 
             } else {
-                // 验证失败
                 localStorage.removeItem(STORAGE_KEY);
                 if (!isAutoLogin) {
                     errorMsg.innerText = result.message || 'Token 错误';
@@ -332,7 +351,6 @@
         }
     }
 
-    // 页面加载自动登录
     document.addEventListener('DOMContentLoaded', () => {
         const savedToken = localStorage.getItem(STORAGE_KEY);
         if (savedToken) {
@@ -341,7 +359,6 @@
         }
     });
 
-    // 绑定弹窗事件
     document.getElementById('verifyBtn').addEventListener('click', () => {
         const token = document.getElementById('tokenInput').value.trim();
         if (token) verifyToken(token, false);
@@ -354,18 +371,14 @@
         }
     });
 
-    // 初始化页面与权限分配
     function initApp() {
         const editorContainer = document.querySelector('.editor-container');
         const editorFooter = document.querySelector('.editor-footer');
         
-        // 权限判断 1：关于富文本编辑器
         if (BACKEND_DATA.role === 'read') {
-            // 只读模式：彻底隐藏编辑器和提交按钮
             if (editorContainer) editorContainer.style.display = 'none';
             if (editorFooter) editorFooter.style.display = 'none';
         } else {
-            // Admin 或 Write：显示编辑器和提交按钮
             if (editorContainer) editorContainer.style.display = 'block';
             if (editorFooter) editorFooter.style.display = 'flex';
             
@@ -386,7 +399,6 @@
         renderTimeline();
     }
 
-    // 渲染进度条与“下一阶段”按钮
     function renderStepper() {
         const container = document.getElementById('stepperContainer');
         container.innerHTML = '';
@@ -407,7 +419,6 @@
             node.className = classNames.join(' ');
             node.innerHTML = `<div class="step-oval">${title}</div>`;
             
-            // 已解锁的节点可以点击查看历史记录
             if (!isLocked) {
                 node.onclick = () => { 
                     state.activeStepIndex = index; 
@@ -418,7 +429,6 @@
             
             container.appendChild(node);
             
-            // 绘制步骤之间的连接线
             if (index < stepsName.length - 1) {
                 const line = document.createElement('div');
                 let lineClass = 'step-line';
@@ -429,8 +439,6 @@
             }
         });
 
-        // 权限判断 2：关于“进入下一阶段”按钮
-        // 规则：只要不是 admin、或者进度已经到底、或者用户正在回看之前的记录 -> 都隐藏
         const nextContainer = document.getElementById('nextStepContainer');
         if (
             BACKEND_DATA.role === 'read' || 
@@ -444,37 +452,50 @@
         }
     }
 
-    // 渲染历史记录时间轴
     function renderTimeline() {
         const stepId = stepsId[state.activeStepIndex];
-        let records = state.nodesData[stepId] ||[];
+        let records = state.nodesData[stepId] || [];
         
+        // 修改点 3：需求阶段把“项目创建”记录强制提到最前面
+        if (stepId === 'requirement') {
+            const creationRecords = records.filter(r => r.time && r.time.includes('项目创建'));
+            const otherRecords = records.filter(r => !r.time || !r.time.includes('项目创建'));
+            records = [...creationRecords, ...otherRecords];
+        }
+
         const container = document.getElementById('timelineContainer');
         if (records.length === 0) {
             container.innerHTML = `<p style="text-align:center; color:#ccc; padding:20px;">暂无该阶段记录</p>`;
             return;
         }
         
-        // 倒序展示最新的在最上面
+        // 倒序展示（最新的在最上面），但“项目创建”已提前
         container.innerHTML = [...records].reverse().map(item => {
             let displayTime = item.time || '早期记录';
-            // 时区标记补充
             if (displayTime !== '早期记录' && !displayTime.includes('UTC+8') && !displayTime.match(/[a-zA-Z]/)) {
                displayTime += ' (UTC+8)';
             }
             
+            // 修改点 2：给项目创建记录添加视觉强调
+            let extraClass = '';
+            let extraHeader = '';
+            if (displayTime.includes('项目创建')) {
+                extraClass = 'starting-record';
+                extraHeader = '<div class="starting-header">◆ 项目启动信息 ◆</div>';
+            }
+
             return `
-            <div class="timeline-item">
+            <div class="timeline-item ${extraClass}">
                 <div class="timeline-divider"><div class="timeline-dot"></div></div>
                 <div class="timeline-content">
                     <div class="timeline-time">${displayTime}</div>
+                    ${extraHeader}
                     <div class="timeline-html">${item.html || ''}</div>
                 </div>
             </div>`;
         }).join('');
     }
 
-    // 提交编辑内容
     document.getElementById('submitBtn').addEventListener('click', async () => {
         if (BACKEND_DATA.role === 'read') return;
         if (!quill) return;
@@ -514,7 +535,6 @@
         } 
     });
 
-    // 触发进入下一阶段
     document.getElementById('nextStepBtn').addEventListener('click', () => {
         if (BACKEND_DATA.role === 'read' || BACKEND_DATA.role === 'write') return;
 
@@ -522,14 +542,11 @@
             state.maxStepIndex++;
             state.activeStepIndex = state.maxStepIndex; 
             
-            // 联动更新页面顶部的状态显示
             const newStatusText = stepsName[state.maxStepIndex];
             document.getElementById('displayStatus').innerText = newStatusText;
             
             renderStepper();
             renderTimeline();
-            
-            // 预留位置：通知后端更新状态 (可以在此调用 API 将 newStatusText 存入数据库)
         }
     });
 </script>
