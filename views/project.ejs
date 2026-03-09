@@ -478,10 +478,8 @@
             
             // 修改点 2：给项目创建记录添加视觉强调
             let extraClass = '';
-            let extraHeader = '';
             if (displayTime.includes('项目创建')) {
                 extraClass = 'starting-record';
-                extraHeader = '<div class="starting-header">◆ 项目启动信息 ◆</div>';
             }
 
             return `
@@ -489,7 +487,6 @@
                 <div class="timeline-divider"><div class="timeline-dot"></div></div>
                 <div class="timeline-content">
                     <div class="timeline-time">${displayTime}</div>
-                    ${extraHeader}
                     <div class="timeline-html">${item.html || ''}</div>
                 </div>
             </div>`;
