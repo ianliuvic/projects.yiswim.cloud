@@ -37,20 +37,21 @@ app.post('/api/upload', async (req, res) => {
 app.post('/api/get-project', async (req, res) => {
     const { projectId, token } = req.body;
     try {
-        // 请求一个新的 n8n Webhook 用于验证
-        //const n8nUrl = `https://n8n.yiswim.cloud/webhook-test/verify-project`;
-        const n8nUrl = `http://n8n-ywock00sw4ko80c4w4ogs8so:5678/webhook-test/verify-project`;    // 使用内部端口
+        const n8nUrl = `http://n8n-ywock00sw4ko80c4w4ogs8so:5678/webhook-test/verify-project`;
         const response = await fetch(n8nUrl, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ projectId, token })
         });
         
-        const result = await response.json();
+        const rawResult = await response.json();
         
-        // 约定 n8n 返回的格式为 { isValid: true, data: {...项目数据...} } 或 { isValid: false }
+        // 【修改点】兼容 n8n 返回数组的情况：如果是数组就取第一个对象
+        const result = Array.isArray(rawResult) ? rawResult[0] : rawResult;
+        
+        // 判断 isValid 并把完整的 result 传给前端
         if (response.ok && result.isValid) {
-            res.json({ success: true, data: result.data });
+            res.json({ success: true, data: result });
         } else {
             res.status(401).json({ success: false, message: "Token 无效或项目不存在" });
         }
@@ -73,6 +74,7 @@ app.get('/:projectId', (req, res) => {
 
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => console.log(`服务已启动，端口 ${PORT}`));
+
 
 
 
