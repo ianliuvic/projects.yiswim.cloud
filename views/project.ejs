@@ -222,12 +222,13 @@
 <script src="https://cdn.jsdelivr.net/npm/quill-image-resize-module@3.0.0/image-resize.min.js"></script>
 
 <script>
+    // 动态更新年份
     document.getElementById('currentYear').innerText = new Date().getFullYear();
 
     const PROJECT_ID = '<%= projectId %>';
     const statusMap = { '需求': 0, '准备': 1, '生产': 2, '质检': 3, '运输': 4, '完成': 5 };
-    const stepsName = ['需求', '准备', '生产', '质检', '运输', '完成'];
-    const stepsId = ['requirement', 'preparation', 'production', 'qa', 'transport', 'done'];
+    const stepsName =['需求', '准备', '生产', '质检', '运输', '完成'];
+    const stepsId =['requirement', 'preparation', 'production', 'qa', 'transport', 'done'];
 
     let BACKEND_DATA = {};
     let state = {};
@@ -235,6 +236,7 @@
 
     const STORAGE_KEY = `tracker_token_${PROJECT_ID}`;
 
+    // 核心验证逻辑
     async function verifyToken(token, isAutoLogin = false) {
         const btn = document.getElementById('verifyBtn');
         const errorMsg = document.getElementById('authError');
@@ -256,62 +258,59 @@
             const result = await response.json();
 
             if (result.success) {
+                // 验证成功，保存 Token 到本地
                 localStorage.setItem(STORAGE_KEY, token);
                 
                 modal.style.display = 'none';
                 appContainer.style.display = 'block';
                 
+                // 提取后端数据 (Node 层已经处理过数组，现在 result.data 是对象)
                 BACKEND_DATA = result.data;
+                const projectData = BACKEND_DATA.project_data || {};
 
-                // 1. 填充顶部 Grid 信息
-                document.getElementById('displayType').innerText = BACKEND_DATA.project_type || '定制生产';
-                document.getElementById('displayUuid').innerText = BACKEND_DATA.uuid || PROJECT_ID;
-                document.getElementById('displayStatus').innerText = BACKEND_DATA.project_status || '未知';
+                // 1. 填充顶部 Grid 基础信息
+                document.getElementById('displayType').innerText = projectData.type || '定制生产';
+                document.getElementById('displayUuid').innerText = projectData.uuid || PROJECT_ID;
+                document.getElementById('displayStatus').innerText = projectData.status || '未知';
                 
-                const roleText = (BACKEND_DATA.role === 'admin' || BACKEND_DATA.role === 'write') ? '管理员 (可编辑)' : '访客 (只读)';
+                // 角色与权限文本映射
+                let roleText = '访客 (只读)';
+                if (BACKEND_DATA.role === 'admin') roleText = '管理员 (全部权限)';
+                else if (BACKEND_DATA.role === 'write') roleText = '协作者 (可输入记录)';
                 document.getElementById('displayRole').innerText = roleText;
 
-                // 2. 数据标准化：将 n8n 返回的 {text, logs} 格式统一转换为前端时间轴的 Array 格式
-                const rawNodes = BACKEND_DATA.nodesData || {};
+                // 2. 数据标准化处理：提取时间轴数据 (如果有的话)
+                const rawNodes = projectData.nodesData || BACKEND_DATA.nodesData || {};
                 const normalizedNodes = {};
 
                 Object.keys(rawNodes).forEach(key => {
                     const val = rawNodes[key];
                     if (Array.isArray(val)) {
-                        // 已经是数组（旧数据或手动输入的数据），直接保持
                         normalizedNodes[key] = val;
                     } else if (typeof val === 'object') {
-                        // 是 n8n 生成的对象格式 (text: generatedHtml, logs: [])
-                        let arr = [];
-                        
-                        // 处理卡片 HTML
-                        if (val.text) {
-                            arr.push({ time: '订单详情', html: val.text });
-                        }
-                        
-                        // 处理系统日志
+                        let arr =[];
+                        if (val.text) arr.push({ time: '订单详情', html: val.text });
                         if (val.logs && Array.isArray(val.logs)) {
-                            val.logs.forEach(log => {
-                                arr.push({ time: '系统日志', html: log });
-                            });
+                            val.logs.forEach(log => { arr.push({ time: '系统日志', html: log }); });
                         }
                         normalizedNodes[key] = arr;
                     } else {
-                        normalizedNodes[key] = [];
+                        normalizedNodes[key] =[];
                     }
                 });
 
-                // 3. 初始化状态
-                const realStatusIndex = BACKEND_DATA.project_status ? (statusMap[BACKEND_DATA.project_status] || 0) : 0;
+                // 3. 初始化全局状态：根据当前状态映射到对应的步骤索引
+                const realStatusIndex = projectData.status ? (statusMap[projectData.status] || 0) : 0;
                 
                 state = {
-                    maxStepIndex: realStatusIndex,      
-                    activeStepIndex: realStatusIndex,   
+                    maxStepIndex: realStatusIndex,      // 项目真实的进度阶段
+                    activeStepIndex: realStatusIndex,   // 当前用户点击查看的视图阶段
                     nodesData: normalizedNodes
                 };
                 
                 initApp(); 
             } else {
+                // 验证失败
                 localStorage.removeItem(STORAGE_KEY);
                 if (!isAutoLogin) {
                     errorMsg.innerText = result.message || 'Token 错误';
@@ -342,6 +341,7 @@
         }
     });
 
+    // 绑定弹窗事件
     document.getElementById('verifyBtn').addEventListener('click', () => {
         const token = document.getElementById('tokenInput').value.trim();
         if (token) verifyToken(token, false);
@@ -354,24 +354,30 @@
         }
     });
 
+    // 初始化页面与权限分配
     function initApp() {
+        const editorContainer = document.querySelector('.editor-container');
+        const editorFooter = document.querySelector('.editor-footer');
+        
+        // 权限判断 1：关于富文本编辑器
         if (BACKEND_DATA.role === 'read') {
-            const editorContainer = document.querySelector('.editor-container');
-            const editorFooter = document.querySelector('.editor-footer');
+            // 只读模式：彻底隐藏编辑器和提交按钮
             if (editorContainer) editorContainer.style.display = 'none';
             if (editorFooter) editorFooter.style.display = 'none';
         } else {
+            // Admin 或 Write：显示编辑器和提交按钮
+            if (editorContainer) editorContainer.style.display = 'block';
+            if (editorFooter) editorFooter.style.display = 'flex';
+            
             if (!quill) {
                 quill = new Quill('#editor', {
                     theme: 'snow',
                     placeholder: '在此输入工作记录，支持直接粘贴或拖拽图片...',
                     modules: {
                         toolbar: [
-                            [{ 'header': [1, 2, false] }], ['bold', 'italic', 'underline', 'strike'], [{ 'list': 'ordered' }, { 'list': 'bullet' }], ['blockquote', 'code-block'],
-                            ['image', 'link', 'video'],
-                            ['clean']
+                            [{ 'header':[1, 2, false] }], ['bold', 'italic', 'underline', 'strike'],[{ 'list': 'ordered' }, { 'list': 'bullet' }], ['blockquote', 'code-block'],['image', 'link', 'video'], ['clean']
                         ],
-                        imageResize: { displaySize: true, modules: ['Resize', 'DisplaySize', 'Toolbar'] }
+                        imageResize: { displaySize: true, modules:['Resize', 'DisplaySize', 'Toolbar'] }
                     }
                 });
             }
@@ -380,6 +386,7 @@
         renderTimeline();
     }
 
+    // 渲染进度条与“下一阶段”按钮
     function renderStepper() {
         const container = document.getElementById('stepperContainer');
         container.innerHTML = '';
@@ -400,6 +407,7 @@
             node.className = classNames.join(' ');
             node.innerHTML = `<div class="step-oval">${title}</div>`;
             
+            // 已解锁的节点可以点击查看历史记录
             if (!isLocked) {
                 node.onclick = () => { 
                     state.activeStepIndex = index; 
@@ -410,6 +418,7 @@
             
             container.appendChild(node);
             
+            // 绘制步骤之间的连接线
             if (index < stepsName.length - 1) {
                 const line = document.createElement('div');
                 let lineClass = 'step-line';
@@ -420,19 +429,25 @@
             }
         });
 
+        // 权限判断 2：关于“进入下一阶段”按钮
+        // 规则：只要不是 admin、或者进度已经到底、或者用户正在回看之前的记录 -> 都隐藏
         const nextContainer = document.getElementById('nextStepContainer');
-        if (BACKEND_DATA.role === 'read' || state.maxStepIndex >= stepsName.length - 1 || state.activeStepIndex !== state.maxStepIndex) {
+        if (
+            BACKEND_DATA.role === 'read' || 
+            BACKEND_DATA.role === 'write' || 
+            state.maxStepIndex >= stepsName.length - 1 || 
+            state.activeStepIndex !== state.maxStepIndex
+        ) {
             nextContainer.style.display = 'none';
         } else {
             nextContainer.style.display = 'flex';
         }
     }
 
+    // 渲染历史记录时间轴
     function renderTimeline() {
         const stepId = stepsId[state.activeStepIndex];
-        
-        // 经过 verifyToken 里的处理，records 现在肯定是一个数组
-        let records = state.nodesData[stepId] || [];
+        let records = state.nodesData[stepId] ||[];
         
         const container = document.getElementById('timelineContainer');
         if (records.length === 0) {
@@ -440,9 +455,10 @@
             return;
         }
         
+        // 倒序展示最新的在最上面
         container.innerHTML = [...records].reverse().map(item => {
             let displayTime = item.time || '早期记录';
-            // 如果时间里没有 CST/UTC 等时区标记，补一个 UTC+8 的提示
+            // 时区标记补充
             if (displayTime !== '早期记录' && !displayTime.includes('UTC+8') && !displayTime.match(/[a-zA-Z]/)) {
                displayTime += ' (UTC+8)';
             }
@@ -458,6 +474,7 @@
         }).join('');
     }
 
+    // 提交编辑内容
     document.getElementById('submitBtn').addEventListener('click', async () => {
         if (BACKEND_DATA.role === 'read') return;
         if (!quill) return;
@@ -468,7 +485,6 @@
         const now = new Date();
         const time = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')} ${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')} (UTC+8)`;
         
-        // 由于我们在 verifyToken 里已经标准化了数据，state.nodesData[stepId] 肯定是一个数组
         if (!state.nodesData[stepId]) state.nodesData[stepId] = [];
         
         state.nodesData[stepId].push({ time, html });
@@ -486,10 +502,9 @@
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ 
                     projectId: PROJECT_ID, 
-                    content: state.nodesData // 上传完整数据
+                    content: state.nodesData 
                 })
             });
-            // 简单的成功提示，不再弹窗打断操作
             btn.innerText = "已保存";
             setTimeout(() => { btn.innerText = originalText; btn.disabled = false; }, 1000);
         } catch(e) {
@@ -499,15 +514,22 @@
         } 
     });
 
+    // 触发进入下一阶段
     document.getElementById('nextStepBtn').addEventListener('click', () => {
-        if (BACKEND_DATA.role === 'read') return;
+        if (BACKEND_DATA.role === 'read' || BACKEND_DATA.role === 'write') return;
 
         if (state.maxStepIndex < stepsName.length - 1) {
             state.maxStepIndex++;
             state.activeStepIndex = state.maxStepIndex; 
+            
+            // 联动更新页面顶部的状态显示
+            const newStatusText = stepsName[state.maxStepIndex];
+            document.getElementById('displayStatus').innerText = newStatusText;
+            
             renderStepper();
             renderTimeline();
-            // 预留位置：通知后端更新状态
+            
+            // 预留位置：通知后端更新状态 (可以在此调用 API 将 newStatusText 存入数据库)
         }
     });
 </script>
