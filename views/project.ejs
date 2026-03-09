@@ -566,16 +566,31 @@
         } else {
             if (editorContainer) editorContainer.style.display = 'block';
             if (editorFooter) editorFooter.style.display = 'flex';
-            
+            // 在 initApp() 函数里，替换原来的 Quill 初始化部分为下面这段
+
             if (!quill) {
                 quill = new Quill('#editor', {
                     theme: 'snow',
                     placeholder: i18next.t('editor.placeholder'),
                     modules: {
-                        toolbar: [
-                            [{ 'header':[1, 2, false] }], ['bold', 'italic', 'underline', 'strike'],[{ 'list': 'ordered' }, { 'list': 'bullet' }], ['blockquote', 'code-block'],['image', 'link', 'video'], ['clean']
-                        ],
-                        imageResize: { displaySize: true, modules:['Resize', 'DisplaySize', 'Toolbar'] }
+                        toolbar: {
+                            container: [
+                                [{ 'header': [1, 2, false] }],
+                                ['bold', 'italic', 'underline', 'strike'],
+                                [{ 'list': 'ordered' }, { 'list': 'bullet' }],
+                                ['blockquote', 'code-block'],
+                                ['image', 'link', 'video'],           // 保留 image 按钮
+                                ['clean']
+                            ],
+                            // 关键：自定义 image 处理函数
+                            handlers: {
+                                'image': imageHandler
+                            }
+                        },
+                        imageResize: {
+                            displaySize: true,
+                            modules: ['Resize', 'DisplaySize', 'Toolbar']
+                        }
                     }
                 });
             }
@@ -583,6 +598,50 @@
         renderStepper();
         renderTimeline();
         updateAllContent();   // 确保所有文字已翻译
+    }
+
+    // Quill 自定义图片上传处理函数
+    function imageHandler() {
+        const input = document.createElement('input');
+        input.setAttribute('type', 'file');
+        input.setAttribute('accept', 'image/*');
+        input.click();
+    
+        input.onchange = async () => {
+            const file = input.files[0];
+            if (!file) return;
+    
+            // 可选：大小限制
+            if (file.size > 5 * 1024 * 1024) {
+                alert('图片大小不能超过 5MB');
+                return;
+            }
+    
+            const formData = new FormData();
+            formData.append('image', file);
+    
+            try {
+                // 调用后端上传接口（与 server.js 对应）
+                const response = await fetch('/api/upload-image', {
+                    method: 'POST',
+                    body: formData
+                });
+    
+                const data = await response.json();
+    
+                if (data.success && data.url) {
+                    // 插入图片，使用返回的 URL
+                    const range = quill.getSelection(true);
+                    quill.insertEmbed(range.index, 'image', data.url);
+                    quill.setSelection(range.index + 1);
+                } else {
+                    alert('图片上传失败：' + (data.message || '未知错误'));
+                }
+            } catch (error) {
+                console.error('图片上传出错', error);
+                alert('上传失败，请检查网络或稍后重试');
+            }
+        };
     }
 
     // ====================== 进度条（支持翻译） ======================
