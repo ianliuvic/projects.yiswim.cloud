@@ -1,7 +1,7 @@
 const express = require('express');
 const path = require('path');
-//const multer = require('multer');
-//const fs = require('fs');
+const multer = require('multer');
+const fs = require('fs');
 const app = express();
 
 // 1. 告诉 Express 我们要使用 EJS 作为模板引擎
@@ -139,6 +139,7 @@ app.listen(PORT, () => console.log(`服务已启动，端口 ${PORT}`));
 //     url: imageUrl
 //   });
 // });
+
 
 
 
