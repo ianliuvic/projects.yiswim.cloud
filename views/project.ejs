@@ -7,6 +7,8 @@
     
     <!-- 引入 Quill 核心样式 -->
     <link href="https://cdn.quilljs.com/1.3.6/quill.snow.css" rel="stylesheet">
+    <!-- i18next CDN（轻量、无构建依赖） -->
+    <script src="https://unpkg.com/i18next@23/dist/umd/i18next.min.js"></script>
 
     <style>
         :root {
@@ -26,9 +28,44 @@
         * { box-sizing: border-box; margin: 0; padding: 0; }
         body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background-color: var(--bg-color); color: var(--gray-800); padding: 20px; line-height: 1.5; }
         
-        .container { margin: 0 auto; max-width: 900px; display: none; }
+        /* 容器改为 relative，便于右上角绝对定位 */
+        .container { 
+            margin: 0 auto; 
+            max-width: 900px; 
+            display: none; 
+            position: relative; 
+        }
         
         button { cursor: pointer; border: none; font-family: inherit; transition: all 0.2s; }
+
+        /* ================= 语言切换按钮 ================= */
+        .lang-switch {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            z-index: 100;
+            display: flex;
+            gap: 6px;
+            background: var(--white);
+            padding: 4px;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+        }
+        .lang-btn {
+            padding: 6px 14px;
+            background: #f8f9fa;
+            border: 1px solid #e5e7eb;
+            border-radius: 6px;
+            font-size: 13px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .lang-btn.active {
+            background: var(--primary);
+            color: white;
+            border-color: var(--primary);
+        }
 
         .brand-header {
             display: flex; align-items: center; margin-bottom: 24px;
@@ -99,7 +136,6 @@
         .timeline-html > :last-child { margin-bottom: 0; }
         .timeline-html img { max-width: 100%; height: auto; border-radius: 6px; }
 
-        /* 针对 n8n 生成的卡片 HTML 的移动端适配 */
         @media (max-width: 600px) {
             .timeline-html > div > div[style*="display: flex"] {
                 flex-direction: column !important;
@@ -116,7 +152,6 @@
 
         .page-footer { text-align: center; margin-top: 50px; padding-top: 20px; padding-bottom: 20px; border-top: 1px solid var(--gray-200); color: var(--gray-400); font-size: 13px; letter-spacing: 0.5px; }
 
-        /* ================= 身份验证弹窗样式 ================= */
         .auth-modal-overlay {
             position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
             background: rgba(0, 0, 0, 0.5); backdrop-filter: blur(5px);
@@ -143,7 +178,6 @@
         .auth-modal button:disabled { background: var(--gray-400); cursor: not-allowed; }
         .auth-error { color: #dc2626; font-size: 13px; margin-top: 10px; display: none; }
 
-        /* 新增：起始记录（项目创建）视觉强调 */
         .timeline-item.starting-record {
             margin-bottom: 32px;
             padding-bottom: 20px;
@@ -157,15 +191,6 @@
             border-color: white;
             box-shadow: 0 0 0 4px rgba(170,0,0,0.25);
         }
-
-        .timeline-item.starting-record .starting-header {
-            font-weight: bold;
-            color: var(--primary);
-            margin-bottom: 12px;
-            font-size: 15px;
-            padding: 8px 0;
-            border-bottom: 1px solid rgba(170,0,0,0.15);
-        }
     </style>
 </head>
 <body>
@@ -173,36 +198,42 @@
 <!-- 身份验证弹窗 -->
 <div id="authModal" class="auth-modal-overlay">
     <div class="auth-modal">
-        <h2>安全验证</h2>
-        <p>请输入项目的访问 Token</p>
-        <input type="password" id="tokenInput" placeholder="输入 Token..." />
-        <button id="verifyBtn">验证并进入</button>
-        <div id="authError" class="auth-error">Token 错误，请重试</div>
+        <h2 data-i18n="modal.title">安全验证</h2>
+        <p data-i18n="modal.prompt">请输入项目的访问 Token</p>
+        <input type="password" id="tokenInput" placeholder="输入 Token..." data-i18n-placeholder="modal.token_placeholder" />
+        <button id="verifyBtn" data-i18n="modal.button">验证并进入</button>
+        <div id="authError" class="auth-error" data-i18n="modal.error">Token 错误，请重试</div>
     </div>
 </div>
 
 <div class="container" id="appContainer">
     
+    <!-- 右上角中英切换按钮 -->
+    <div class="lang-switch">
+        <button class="lang-btn active" data-lang="zh">中文</button>
+        <button class="lang-btn" data-lang="en">English</button>
+    </div>
+
     <div class="brand-header">
         <img src="/logo.png" alt="Logo" class="brand-logo" onerror="this.src='data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdib3g9IjAgMCAxMDAgMTAwIj48cmVjdCB3aWR0aD0iMTAwIiBoZWlnaHQ9IjEwMCIgZmlsbD0iI2RkZCIvPjwvc3ZnPg=='" />
-        <div class="brand-title">项目跟踪系统</div>
+        <div class="brand-title" data-i18n="brand.title">项目跟踪系统</div>
     </div>
 
     <div class="project-info-grid">
         <div class="info-item">
-            <span class="info-label">项目类型</span>
+            <span class="info-label" data-i18n="info.type">项目类型</span>
             <span class="info-value" id="displayType">加载中...</span>
         </div>
         <div class="info-item">
-            <span class="info-label">项目 ID (UUID)</span>
+            <span class="info-label" data-i18n="info.uuid">项目 ID (UUID)</span>
             <span class="info-value mono" id="displayUuid"><%= projectId %></span>
         </div>
         <div class="info-item">
-            <span class="info-label">当前状态</span>
+            <span class="info-label" data-i18n="info.status">当前状态</span>
             <span class="info-value highlight" id="displayStatus">加载中...</span>
         </div>
         <div class="info-item">
-            <span class="info-label">当前身份</span>
+            <span class="info-label" data-i18n="info.role">当前身份</span>
             <span class="info-value" id="displayRole">验证中...</span>
         </div>
     </div>
@@ -215,21 +246,24 @@
         </div>
 
         <div class="editor-footer">
-            <button class="btn-submit" id="submitBtn">保存当前记录</button>
+            <button class="btn-submit" id="submitBtn" data-i18n="button.save">保存当前记录</button>
         </div>
 
         <div class="history-section">
-            <div class="history-title">历史记录</div>
+            <div class="history-title" data-i18n="history.title">历史记录</div>
             <div class="timeline" id="timelineContainer"></div>
         </div>
     </div> 
 
     <div class="next-step-container" id="nextStepContainer">
-        <span class="link-next-step" id="nextStepBtn">进入下一阶段 ></span>
+        <span class="link-next-step" id="nextStepBtn" data-i18n="button.next">进入下一阶段 ></span>
     </div>
 
     <div class="page-footer">
-        © <span id="currentYear"></span> 红绣服饰 (Hongxiu Clothing). All Rights Reserved. | 专属定制 · 品质追踪
+        © <span id="currentYear"></span> 
+        <span data-i18n="footer.company">红绣服饰 (Hongxiu Clothing)</span>. 
+        <span data-i18n="footer.rights">All Rights Reserved</span>. 
+        | <span data-i18n="footer.slogan">专属定制 · 品质追踪</span>
     </div>
 
 </div> 
@@ -238,19 +272,149 @@
 <script src="https://cdn.jsdelivr.net/npm/quill-image-resize-module@3.0.0/image-resize.min.js"></script>
 
 <script>
-    document.getElementById('currentYear').innerText = new Date().getFullYear();
+    // ====================== i18next 多语言配置 ======================
+    const i18nResources = {
+        zh: {
+            translation: {
+                "title": "项目跟踪 - 红绣服饰",
+                "brand.title": "项目跟踪系统",
+                "info.type": "项目类型",
+                "info.uuid": "项目 ID (UUID)",
+                "info.status": "当前状态",
+                "info.role": "当前身份",
+                "role.visitor": "访客 (只读)",
+                "role.admin": "管理员 (全部权限)",
+                "role.collaborator": "协作者 (可输入记录)",
+                "default.type": "定制生产",
+                "default.unknown": "未知",
+                "default.loading": "加载中...",
+                "default.verifying": "验证中...",
+                "button.save": "保存当前记录",
+                "history.title": "历史记录",
+                "timeline.no_records": "暂无该阶段记录",
+                "timeline.early": "早期记录",
+                "button.next": "进入下一阶段 >",
+                "modal.title": "安全验证",
+                "modal.prompt": "请输入项目的访问 Token",
+                "modal.token_placeholder": "输入 Token...",
+                "modal.button": "验证并进入",
+                "modal.error": "Token 错误，请重试",
+                "modal.verifying": "验证中...",
+                "alert.empty": "内容为空",
+                "alert.save_fail": "保存失败",
+                "editor.placeholder": "在此输入工作记录，支持直接粘贴或拖拽图片...",
+                "footer.company": "红绣服饰 (Hongxiu Clothing)",
+                "footer.rights": "All Rights Reserved",
+                "footer.slogan": "专属定制 · 品质追踪",
+                // 进度条步骤（key 用中文原词，便于不改动原有逻辑）
+                "step.需求": "需求",
+                "step.准备": "准备",
+                "step.生产": "生产",
+                "step.质检": "质检",
+                "step.运输": "运输",
+                "step.完成": "完成"
+            }
+        },
+        en: {
+            translation: {
+                "title": "Project Tracker - Hongxiu Clothing",
+                "brand.title": "Project Tracker",
+                "info.type": "Project Type",
+                "info.uuid": "Project ID (UUID)",
+                "info.status": "Current Status",
+                "info.role": "Current Role",
+                "role.visitor": "Visitor (Read-only)",
+                "role.admin": "Administrator (Full Access)",
+                "role.collaborator": "Collaborator (Can Edit)",
+                "default.type": "Custom Production",
+                "default.unknown": "Unknown",
+                "default.loading": "Loading...",
+                "default.verifying": "Verifying...",
+                "button.save": "Save Current Record",
+                "history.title": "History",
+                "timeline.no_records": "No records in this stage",
+                "timeline.early": "Early Record",
+                "button.next": "Next Stage >",
+                "modal.title": "Security Verification",
+                "modal.prompt": "Please enter the project access Token",
+                "modal.token_placeholder": "Enter Token...",
+                "modal.button": "Verify and Enter",
+                "modal.error": "Invalid Token, please try again",
+                "modal.verifying": "Verifying...",
+                "alert.empty": "Content is empty",
+                "alert.save_fail": "Save failed",
+                "editor.placeholder": "Enter work records here, support paste or drag images...",
+                "footer.company": "Hongxiu Clothing",
+                "footer.rights": "All Rights Reserved",
+                "footer.slogan": "Custom Made · Quality Tracking",
+                "step.需求": "Requirement",
+                "step.准备": "Preparation",
+                "step.生产": "Production",
+                "step.质检": "Quality Inspection",
+                "step.运输": "Transportation",
+                "step.完成": "Completed"
+            }
+        }
+    };
 
+    // ====================== 全局变量 ======================
     const PROJECT_ID = '<%= projectId %>';
     const statusMap = { '需求': 0, '准备': 1, '生产': 2, '质检': 3, '运输': 4, '完成': 5 };
-    const stepsName =['需求', '准备', '生产', '质检', '运输', '完成'];
-    const stepsId =['requirement', 'preparation', 'production', 'qa', 'transport', 'done'];
+    const stepsName = ['需求', '准备', '生产', '质检', '运输', '完成'];   // 逻辑保持不变
+    const stepsId = ['requirement', 'preparation', 'production', 'qa', 'transport', 'done'];
 
     let BACKEND_DATA = {};
     let state = {};
     let quill;
 
     const STORAGE_KEY = `tracker_token_${PROJECT_ID}`;
+    const LANG_STORAGE_KEY = 'lang';
 
+    // ====================== i18next 初始化 ======================
+    function initI18next() {
+        const savedLang = localStorage.getItem(LANG_STORAGE_KEY) || 'zh';
+        
+        i18next.init({
+            lng: savedLang,
+            resources: i18nResources,
+            fallbackLng: 'zh',
+            debug: false
+        }).then(() => {
+            updateAllContent();
+            highlightActiveLangButton();
+        });
+    }
+
+    // 更新所有带 data-i18n 的元素
+    function updateAllContent() {
+        document.querySelectorAll('[data-i18n]').forEach(el => {
+            const key = el.getAttribute('data-i18n');
+            el.textContent = i18next.t(key);
+        });
+
+        // 处理 placeholder
+        document.querySelectorAll('[data-i18n-placeholder]').forEach(el => {
+            const key = el.getAttribute('data-i18n-placeholder');
+            el.placeholder = i18next.t(key);
+        });
+
+        // 动态标题
+        document.title = i18next.t('title');
+
+        // Quill placeholder（如果已初始化）
+        if (quill) {
+            quill.root.setAttribute('data-placeholder', i18next.t('editor.placeholder'));
+        }
+    }
+
+    // 高亮当前语言按钮
+    function highlightActiveLangButton() {
+        document.querySelectorAll('.lang-btn').forEach(btn => {
+            btn.classList.toggle('active', btn.dataset.lang === i18next.language);
+        });
+    }
+
+    // ====================== 验证逻辑（稍作翻译适配） ======================
     async function verifyToken(token, isAutoLogin = false) {
         const btn = document.getElementById('verifyBtn');
         const errorMsg = document.getElementById('authError');
@@ -258,7 +422,7 @@
         const appContainer = document.getElementById('appContainer');
 
         if (!isAutoLogin) {
-            btn.innerText = '验证中...';
+            btn.innerText = i18next.t('modal.verifying');
             btn.disabled = true;
             errorMsg.style.display = 'none';
         }
@@ -280,30 +444,28 @@
                 BACKEND_DATA = result.data;
                 const projectData = BACKEND_DATA.project_data || {};
 
-                document.getElementById('displayType').innerText = projectData.type || '定制生产';
+                // 动态字段（后端数据保持原样，UI文字已翻译）
+                document.getElementById('displayType').innerText = projectData.type || i18next.t('default.type');
                 document.getElementById('displayUuid').innerText = projectData.uuid || PROJECT_ID;
-                document.getElementById('displayStatus').innerText = projectData.status || '未知';
+                document.getElementById('displayStatus').innerText = projectData.status || i18next.t('default.unknown');
                 
-                let roleText = '访客 (只读)';
-                if (BACKEND_DATA.role === 'admin') roleText = '管理员 (全部权限)';
-                else if (BACKEND_DATA.role === 'write') roleText = '协作者 (可输入记录)';
+                let roleText = i18next.t('role.visitor');
+                if (BACKEND_DATA.role === 'admin') roleText = i18next.t('role.admin');
+                else if (BACKEND_DATA.role === 'write') roleText = i18next.t('role.collaborator');
                 document.getElementById('displayRole').innerText = roleText;
 
-                // ─── 修改点 1：改进数据标准化处理 ────────────────────────────────
+                // 数据标准化（保持不变）
                 const rawNodes = projectData.nodesData || BACKEND_DATA.nodesData || {};
                 const normalizedNodes = {};
 
                 Object.keys(rawNodes).forEach(key => {
                     const val = rawNodes[key];
-                    
                     if (Array.isArray(val)) {
-                        // 新格式：直接是 [{time, html}, ...]
                         normalizedNodes[key] = val.map(item => ({
-                            time: item.time || '未知时间',
+                            time: item.time || i18next.t('timeline.early'),
                             html: item.html || ''
                         }));
                     } else if (typeof val === 'object' && val !== null) {
-                        // 旧格式兼容
                         let arr = [];
                         if (val.text) arr.push({ time: '订单详情', html: val.text });
                         if (val.logs && Array.isArray(val.logs)) {
@@ -315,7 +477,6 @@
                     }
                 });
 
-                // 保证每个阶段都有数组
                 stepsId.forEach(step => {
                     if (!normalizedNodes[step]) normalizedNodes[step] = [];
                 });
@@ -332,10 +493,10 @@
             } else {
                 localStorage.removeItem(STORAGE_KEY);
                 if (!isAutoLogin) {
-                    errorMsg.innerText = result.message || 'Token 错误';
+                    errorMsg.innerText = result.message || i18next.t('modal.error');
                     errorMsg.style.display = 'block';
                 }
-                btn.innerText = '验证并进入';
+                btn.innerText = i18next.t('modal.button');
                 btn.disabled = false;
                 if(isAutoLogin) modal.style.display = 'flex';
             }
@@ -345,20 +506,44 @@
                 errorMsg.innerText = '网络错误，请稍后再试';
                 errorMsg.style.display = 'block';
             }
-            btn.innerText = '验证并进入';
+            btn.innerText = i18next.t('modal.button');
             btn.disabled = false;
             if(isAutoLogin) modal.style.display = 'flex';
         }
     }
 
+    // ====================== 页面加载 ======================
     document.addEventListener('DOMContentLoaded', () => {
+        // 1. 初始化 i18next
+        initI18next();
+
+        // 2. 自动登录（如果有 Token）
         const savedToken = localStorage.getItem(STORAGE_KEY);
         if (savedToken) {
-            document.getElementById('verifyBtn').innerText = '自动登录中...';
+            document.getElementById('verifyBtn').innerText = i18next.t('default.verifying');
             verifyToken(savedToken, true);
         }
+
+        // 3. 语言切换按钮事件
+        document.querySelectorAll('.lang-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                const newLang = btn.dataset.lang;
+                i18next.changeLanguage(newLang, () => {
+                    localStorage.setItem(LANG_STORAGE_KEY, newLang);
+                    updateAllContent();
+                    highlightActiveLangButton();
+                    
+                    // 重新渲染动态部分（步骤条、时间轴）
+                    if (state.nodesData) {
+                        renderStepper();
+                        renderTimeline();
+                    }
+                });
+            });
+        });
     });
 
+    // ====================== 验证按钮 & Enter ======================
     document.getElementById('verifyBtn').addEventListener('click', () => {
         const token = document.getElementById('tokenInput').value.trim();
         if (token) verifyToken(token, false);
@@ -371,6 +556,7 @@
         }
     });
 
+    // ====================== 初始化应用 ======================
     function initApp() {
         const editorContainer = document.querySelector('.editor-container');
         const editorFooter = document.querySelector('.editor-footer');
@@ -385,7 +571,7 @@
             if (!quill) {
                 quill = new Quill('#editor', {
                     theme: 'snow',
-                    placeholder: '在此输入工作记录，支持直接粘贴或拖拽图片...',
+                    placeholder: i18next.t('editor.placeholder'),
                     modules: {
                         toolbar: [
                             [{ 'header':[1, 2, false] }], ['bold', 'italic', 'underline', 'strike'],[{ 'list': 'ordered' }, { 'list': 'bullet' }], ['blockquote', 'code-block'],['image', 'link', 'video'], ['clean']
@@ -397,8 +583,10 @@
         }
         renderStepper();
         renderTimeline();
+        updateAllContent();   // 确保所有文字已翻译
     }
 
+    // ====================== 进度条（支持翻译） ======================
     function renderStepper() {
         const container = document.getElementById('stepperContainer');
         container.innerHTML = '';
@@ -417,7 +605,9 @@
             }
             
             node.className = classNames.join(' ');
-            node.innerHTML = `<div class="step-oval">${title}</div>`;
+            // 使用 i18next 翻译步骤名称
+            const translatedTitle = i18next.t(`step.${title}`);
+            node.innerHTML = `<div class="step-oval">${translatedTitle}</div>`;
             
             if (!isLocked) {
                 node.onclick = () => { 
@@ -452,11 +642,11 @@
         }
     }
 
+    // ====================== 时间轴（支持翻译） ======================
     function renderTimeline() {
         const stepId = stepsId[state.activeStepIndex];
         let records = state.nodesData[stepId] || [];
         
-        // 修改点 3：需求阶段把“项目创建”记录强制提到最前面
         if (stepId === 'requirement') {
             const creationRecords = records.filter(r => r.time && r.time.includes('项目创建'));
             const otherRecords = records.filter(r => !r.time || !r.time.includes('项目创建'));
@@ -465,18 +655,16 @@
 
         const container = document.getElementById('timelineContainer');
         if (records.length === 0) {
-            container.innerHTML = `<p style="text-align:center; color:#ccc; padding:20px;">暂无该阶段记录</p>`;
+            container.innerHTML = `<p style="text-align:center; color:#ccc; padding:20px;">${i18next.t('timeline.no_records')}</p>`;
             return;
         }
         
-        // 倒序展示（最新的在最上面），但“项目创建”已提前
         container.innerHTML = [...records].reverse().map(item => {
-            let displayTime = item.time || '早期记录';
-            if (displayTime !== '早期记录' && !displayTime.includes('UTC+8') && !displayTime.match(/[a-zA-Z]/)) {
+            let displayTime = item.time || i18next.t('timeline.early');
+            if (displayTime !== i18next.t('timeline.early') && !displayTime.includes('UTC+8') && !displayTime.match(/[a-zA-Z]/)) {
                displayTime += ' (UTC+8)';
             }
             
-            // 修改点 2：给项目创建记录添加视觉强调
             let extraClass = '';
             if (displayTime.includes('项目创建')) {
                 extraClass = 'starting-record';
@@ -493,11 +681,16 @@
         }).join('');
     }
 
+    // ====================== 保存按钮 ======================
     document.getElementById('submitBtn').addEventListener('click', async () => {
         if (BACKEND_DATA.role === 'read') return;
         if (!quill) return;
 
-        if (quill.getLength() <= 1 && !quill.root.innerHTML.includes('<img')) return alert("内容为空");
+        if (quill.getLength() <= 1 && !quill.root.innerHTML.includes('<img')) {
+            alert(i18next.t('alert.empty'));
+            return;
+        }
+
         const html = quill.root.innerHTML;
         const stepId = stepsId[state.activeStepIndex]; 
         const now = new Date();
@@ -511,7 +704,7 @@
 
         const btn = document.getElementById('submitBtn');
         const originalText = btn.innerText;
-        btn.innerText = "保存中...";
+        btn.innerText = i18next.t('modal.verifying');   // 复用“验证中...”文案也行，这里用 loading 感
         btn.disabled = true;
 
         try {
@@ -523,15 +716,19 @@
                     content: state.nodesData 
                 })
             });
-            btn.innerText = "已保存";
-            setTimeout(() => { btn.innerText = originalText; btn.disabled = false; }, 1000);
+            btn.innerText = i18next.t('button.save') + " ✓";
+            setTimeout(() => { 
+                btn.innerText = originalText; 
+                btn.disabled = false; 
+            }, 1500);
         } catch(e) {
-            alert("保存失败");
+            alert(i18next.t('alert.save_fail'));
             btn.innerText = originalText;
             btn.disabled = false;
         } 
     });
 
+    // ====================== 下一阶段 ======================
     document.getElementById('nextStepBtn').addEventListener('click', () => {
         if (BACKEND_DATA.role === 'read' || BACKEND_DATA.role === 'write') return;
 
