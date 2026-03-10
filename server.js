@@ -175,15 +175,48 @@ app.post('/api/upload-image', upload.single('image'), async (req, res) => {
 });
 
 
+// ==========================================
+// 【新增：通用文件上传（PDF, Word, Excel 等）】
+// ==========================================
 
+// 专门为通用文件创建一个 Multer 配置（不限制文件类型）
+const fileStorage = multer.diskStorage({
+  destination: (req, file, cb) => {
+    // 复用原本的 UPLOAD_DIR (/n8n_files/uploads)
+    cb(null, UPLOAD_DIR);
+  },
+  filename: (req, file, cb) => {
+    // 为了防止中文文件名导致 URL 乱码或冲突，使用时间戳+随机字符+原后缀名
+    const ext = path.extname(file.originalname);
+    const uniqueName = `file-${Date.now()}-${Math.random().toString(36).slice(2, 8)}${ext}`;
+    cb(null, uniqueName);
+  }
+});
 
+const uploadFile = multer({
+  storage: fileStorage,
+  limits: { fileSize: 25 * 1024 * 1024 } // 后端限制放宽到 25MB（前端已限制 20MB）
+});
 
+// 通用文件上传接口
+app.post('/api/upload-file', uploadFile.single('file'), (req, res) => {
+  if (!req.file) {
+    return res.status(400).json({ success: false, message: "未接收到文件" });
+  }
 
+  try {
+    const filename = req.file.filename;
+    
+    // 注意：普通文件不需要也不可以使用 sharp 处理，直接返回静态访问链接即可
+    res.json({
+      success: true,
+      url: `https://files.yiswim.cloud/uploads/${filename}`
+    });
+  } catch (err) {
+    console.error('文件上传处理失败:', err);
+    res.status(500).json({ success: false, message: "文件保存失败" });
+  }
+});
 
-
-
-
-
-
-
+// ==========================================
 
