@@ -224,60 +224,71 @@
             .step-oval { width: 64px; font-size: 12px; }
         }
 
-    /* 大图预览遮罩层 */
-    .img-preview-modal {
-        display: none;
-        position: fixed;
-        z-index: 20000;
-        left: 0; top: 0;
-        width: 100%; height: 100%;
-        background-color: rgba(0,0,0,0.95);
-        justify-content: center;
-        align-items: center;
-        user-select: none; /* 防止频繁点击选中文字 */
-    }
-    
-    .img-preview-modal img {
-        max-width: 90%;
-        max-height: 90%;
-        object-fit: contain;
-        transition: transform 0.2s;
-    }
-    
-    /* 预览层的导航箭头 */
-    .modal-nav-btn {
-        position: absolute;
-        top: 50%;
-        transform: translateY(-50%);
-        background: rgba(255,255,255,0.1);
-        color: white;
-        border: none;
-        font-size: 40px;
-        padding: 20px 15px;
-        cursor: pointer;
-        border-radius: 8px;
-        transition: background 0.3s;
-        z-index: 20001;
-    }
-    .modal-nav-btn:hover { background: rgba(255,255,255,0.2); }
-    .modal-nav-btn.prev { left: 10px; }
-    .modal-nav-btn.next { right: 10px; }
-    
-    /* 图片计数器 */
-    .modal-counter {
-        position: absolute;
-        bottom: 20px;
-        color: white;
-        font-size: 16px;
-        background: rgba(0,0,0,0.5);
-        padding: 5px 15px;
-        border-radius: 20px;
-    }
-    
-    /* 隐藏移动端不必要的箭头或调整大小 */
-    @media (max-width: 768px) {
-        .modal-nav-btn { padding: 15px 10px; font-size: 30px; background: transparent; }
-    }
+        /* 附件超链接样式优化 */
+        .timeline-html a {
+            color: var(--primary);
+            text-decoration: underline;
+            word-break: break-all;
+            font-weight: 500;
+        }
+        .timeline-html a:hover {
+            color: var(--primary-hover);
+        }
+
+        /* 大图预览遮罩层 */
+        .img-preview-modal {
+            display: none;
+            position: fixed;
+            z-index: 20000;
+            left: 0; top: 0;
+            width: 100%; height: 100%;
+            background-color: rgba(0,0,0,0.95);
+            justify-content: center;
+            align-items: center;
+            user-select: none; /* 防止频繁点击选中文字 */
+        }
+        
+        .img-preview-modal img {
+            max-width: 90%;
+            max-height: 90%;
+            object-fit: contain;
+            transition: transform 0.2s;
+        }
+        
+        /* 预览层的导航箭头 */
+        .modal-nav-btn {
+            position: absolute;
+            top: 50%;
+            transform: translateY(-50%);
+            background: rgba(255,255,255,0.1);
+            color: white;
+            border: none;
+            font-size: 40px;
+            padding: 20px 15px;
+            cursor: pointer;
+            border-radius: 8px;
+            transition: background 0.3s;
+            z-index: 20001;
+        }
+        .modal-nav-btn:hover { background: rgba(255,255,255,0.2); }
+        .modal-nav-btn.prev { left: 10px; }
+        .modal-nav-btn.next { right: 10px; }
+        
+        /* 图片计数器 */
+        .modal-counter {
+            position: absolute;
+            bottom: 20px;
+            color: white;
+            font-size: 16px;
+            background: rgba(0,0,0,0.5);
+            padding: 5px 15px;
+            border-radius: 20px;
+        }
+        
+        /* 隐藏移动端不必要的箭头或调整大小 */
+        @media (max-width: 768px) {
+            .modal-nav-btn { padding: 15px 10px; font-size: 30px; background: transparent; }
+        }
     </style>
 </head>
 <body>
@@ -415,7 +426,10 @@
                 "step.生产": "生产",
                 "step.质检": "质检",
                 "step.运输": "运输",
-                "step.完成": "完成"
+                "step.完成": "完成",
+                "alert.file_limit": "文件大小不能超过 20MB",
+                "alert.file_uploading": "[上传中...] ",
+                "alert.file_fail": "文件上传失败："
             }
         },
         en: {
@@ -458,7 +472,10 @@
                 "step.生产": "Production",
                 "step.质检": "Quality Control",
                 "step.运输": "Shipping",
-                "step.完成": "Completed"
+                "step.完成": "Completed",
+                "alert.file_limit": "File size cannot exceed 20MB",
+                "alert.file_uploading": "[Uploading...] ",
+                "alert.file_fail": "File upload failed: "
             }
         }
     };
@@ -659,6 +676,10 @@
             if (editorFooter) editorFooter.style.display = 'flex';
             
             if (!quill) {
+
+                const icons = Quill.import('ui/icons');
+                icons['attachment'] = '<svg viewbox="0 0 24 24"><path d="M16.5,6v11.5c0,2.21-1.79,4-4,4s-4-1.79-4-4V5c0-1.38,1.12-2.5,2.5-2.5s2.5,1.12,2.5,2.5v10.5c0,0.55-0.45,1-1,1s-1-0.45-1-1V6H10v9.5c0,1.38,1.12,2.5,2.5,2.5s2.5-1.12,2.5-2.5V5c0-2.21-1.79-4-4-4S7,2.79,7,5v12.5c0,3.31,2.69,6,6,6s6-2.69,6-6V6H16.5z"/></svg>';
+                
                 quill = new Quill('#editor', {
                     theme: 'snow',
                     placeholder: i18next.t('editor.placeholder'),
@@ -669,11 +690,12 @@
                                 ['bold', 'italic', 'underline', 'strike'],
                                 [{ 'list': 'ordered' }, { 'list': 'bullet' }],
                                 ['blockquote', 'code-block'],
-                                ['image', 'link', 'video'],
+                                ['image', 'attachment', 'link', 'video'],
                                 ['clean']
                             ],
                             handlers: {
-                                'image': imageHandler
+                                'image': imageHandler，
+                                 'attachment': fileHandler 
                             }
                         },
                         imageResize: {
@@ -800,6 +822,67 @@
                 }
             } catch (error) {
                 console.error('图片上传出错', error);
+                alert('上传失败，请检查网络或稍后重试');
+            }
+        };
+    }
+
+    // Quill 附件上传处理函数
+    function fileHandler() {
+        const input = document.createElement('input');
+        input.setAttribute('type', 'file');
+        // 不限制类型，允许所有文件
+        input.click();
+
+        input.onchange = async () => {
+            const file = input.files[0];
+            if (!file) return;
+
+            // 限制文件大小（例如 20MB）
+            if (file.size > 20 * 1024 * 1024) {
+                alert(i18next.t('alert.file_limit') || '文件大小不能超过 20MB');
+                return;
+            }
+
+            const range = quill.getSelection(true);
+            const uploadingText = (i18next.t('alert.file_uploading') || '[上传中...] ') + file.name;
+            
+            // 先在编辑器里插入“[上传中...] 文件名”占位符
+            quill.insertText(range.index, uploadingText, { color: '#999' });
+
+            const formData = new FormData();
+            formData.append('file', file); // 这里的字段名 'file' 需根据你后端的接收要求调整
+
+            try {
+                // 请求后端的上传附件接口
+                const response = await fetch('/api/upload-file', {
+                    method: 'POST',
+                    body: formData
+                });
+
+                const data = await response.json();
+
+                // 删除刚才的占位符文本
+                quill.deleteText(range.index, uploadingText.length);
+
+                if (data.success && data.url) {
+                    // 插入带 📎 图标的文件名，并转为超链接
+                    const insertText = `📎 ${file.name}`;
+                    quill.insertText(range.index, insertText);
+                    quill.setSelection(range.index, insertText.length);
+                    quill.format('link', data.url); // 设置超链接
+                    
+                    // 将光标移到链接后面，并清除链接格式，方便继续输入文字
+                    quill.setSelection(range.index + insertText.length);
+                    quill.format('link', false);
+                    quill.insertText(range.index + insertText.length, ' '); 
+                } else {
+                    alert((i18next.t('alert.file_fail') || '文件上传失败：') + (data.message || '未知错误'));
+                }
+            } catch (error) {
+                console.error('文件上传出错', error);
+                // 发生异常时也删除占位符
+                quill.deleteText(range.index, uploadingText.length);
                 alert('上传失败，请检查网络或稍后重试');
             }
         };
