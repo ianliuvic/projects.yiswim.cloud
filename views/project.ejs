@@ -741,6 +741,8 @@
                 extraClass = 'starting-record';
             }
 
+            const optimizedHtml = (item.html || '').replace(/<img /g, '<img loading="lazy" ');
+
             return `
             <div class="timeline-item ${extraClass}">
                 <div class="timeline-divider"><div class="timeline-dot"></div></div>
