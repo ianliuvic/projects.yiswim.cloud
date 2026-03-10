@@ -800,20 +800,56 @@
     });
 
     // ====================== 下一阶段 ======================
-    document.getElementById('nextStepBtn').addEventListener('click', () => {
-        if (BACKEND_DATA.role === 'read' || BACKEND_DATA.role === 'write') return;
-
-        if (state.maxStepIndex < stepsName.length - 1) {
-            state.maxStepIndex++;
-            state.activeStepIndex = state.maxStepIndex; 
-            
-            const newStatusText = stepsName[state.maxStepIndex];
-            document.getElementById('displayStatus').innerText = newStatusText;
-            
-            renderStepper();
-            renderTimeline();
-        }
-    });
+    document.getElementById('nextStepBtn').addEventListener('click', async () => {
+            // 权限检查：write 和 admin 都可以操作
+            if (BACKEND_DATA.role !== 'write' && BACKEND_DATA.role !== 'admin') return;
+    
+            // 只有在当前最新阶段才显示按钮（避免误操作历史阶段）
+            if (state.activeStepIndex !== state.maxStepIndex) return;
+    
+            // 弹出确认弹窗
+            const confirmed = confirm(i18next.t('confirm.complete_stage') || "确认提交“此阶段已完成”？\n此操作将通知管理员，正在更新项目进展。");
+    
+            if (!confirmed) return;
+    
+            // 禁用按钮，显示加载中
+            const btn = document.getElementById('nextStepBtn');
+            const originalText = btn.innerText;
+            btn.innerText = i18next.t('loading') || "处理中...";
+            btn.style.pointerEvents = 'none';
+    
+            try {
+                const res = await fetch('/api/append-record', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        projectId: PROJECT_ID,
+                        stepId: stepsId[state.maxStepIndex], // 当前阶段
+                        newRecord: {
+                            time: `${new Date().toLocaleString('zh-CN', { timeZone: 'Asia/Shanghai' })} (UTC+8)`,
+                            html: `<p style="color:#aa0000; font-weight:bold;">【系统通知】此阶段已完成，已通知管理员更新进展</p>`
+                        },
+                        action: "complete_current_stage"  // ← 新增字段，告诉 n8n 这是完成阶段请求
+                    })
+                });
+    
+                const data = await res.json();
+    
+                if (data.success) {
+                    alert(i18next.t('alert.complete_success') || "已通知管理员，正在更新项目进展");
+                    // 可选：前端显示已完成状态（不推进，只是视觉提示）
+                    btn.innerText = "已提交完成";
+                    btn.style.color = '#888';
+                    btn.style.pointerEvents = 'none';
+                } else {
+                    throw new Error("提交失败");
+                }
+            } catch (e) {
+                alert(i18next.t('alert.complete_fail') || "通知管理员失败，请稍后重试");
+                btn.innerText = originalText;
+                btn.style.pointerEvents = 'auto';
+            }
+        });
 </script>
 </body>
 </html>
