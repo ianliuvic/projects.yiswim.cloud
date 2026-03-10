@@ -7,7 +7,7 @@
     
     <!-- 引入 Quill 核心样式 -->
     <link href="https://cdn.quilljs.com/1.3.6/quill.snow.css" rel="stylesheet">
-    <!-- i18next CDN（轻量、无构建依赖） -->
+    <!-- i18next CDN -->
     <script src="https://unpkg.com/i18next@23/dist/umd/i18next.min.js"></script>
 
     <style>
@@ -28,7 +28,6 @@
         * { box-sizing: border-box; margin: 0; padding: 0; }
         body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background-color: var(--bg-color); color: var(--gray-800); padding: 20px; line-height: 1.5; }
         
-        /* 容器改为 relative，便于右上角绝对定位 */
         .container { 
             margin: 0 auto; 
             max-width: 900px; 
@@ -38,7 +37,6 @@
         
         button { cursor: pointer; border: none; font-family: inherit; transition: all 0.2s; }
 
-        /* ================= 语言切换按钮 ================= */
         .lang-switch {
             position: absolute;
             right: 20px;
@@ -255,7 +253,7 @@
     </div> 
 
     <div class="next-step-container" id="nextStepContainer">
-        <span class="link-next-step" id="nextStepBtn" data-i18n="button.next">进入下一阶段 ></span>
+        <span class="link-next-step" id="nextStepBtn" data-i18n="button.complete_stage">此阶段已完成</span>
     </div>
 
     <div class="page-footer">
@@ -289,10 +287,13 @@
                 "default.loading": "加载中...",
                 "default.verifying": "验证中...",
                 "button.save": "保存当前记录",
+                "button.complete_stage": "此阶段已完成",
+                "confirm.complete_stage": "确认提交“此阶段已完成”？\n此操作将通知管理员，正在更新项目进展。",
+                "alert.complete_success": "已通知管理员，正在更新项目进展",
+                "alert.complete_fail": "通知管理员失败，请稍后重试",
                 "history.title": "历史记录",
                 "timeline.no_records": "暂无该阶段记录",
                 "timeline.early": "早期记录",
-                "button.next": "进入下一阶段 >",
                 "modal.title": "安全验证",
                 "modal.prompt": "请输入项目的访问 Token",
                 "modal.token_placeholder": "输入 Token...",
@@ -305,7 +306,6 @@
                 "footer.company": "红绣服饰 (Hongxiu Clothing)",
                 "footer.rights": "All Rights Reserved",
                 "footer.slogan": "专属定制 · 品质追踪",
-                // 进度条步骤（key 用中文原词，便于不改动原有逻辑）
                 "step.需求": "需求",
                 "step.准备": "准备",
                 "step.生产": "生产",
@@ -330,10 +330,13 @@
                 "default.loading": "Loading...",
                 "default.verifying": "Verifying...",
                 "button.save": "Save Current Record",
+                "button.complete_stage": "Stage Completed",
+                "confirm.complete_stage": "Confirm 'This stage is completed'? This will notify the admin and update progress.",
+                "alert.complete_success": "Admin has been notified, progress is being updated.",
+                "alert.complete_fail": "Failed to notify admin, please try again later.",
                 "history.title": "History",
                 "timeline.no_records": "No records in this stage",
                 "timeline.early": "Early Record",
-                "button.next": "Next Stage >",
                 "modal.title": "Security Verification",
                 "modal.prompt": "Please enter the project access Token",
                 "modal.token_placeholder": "Enter Token...",
@@ -359,7 +362,7 @@
     // ====================== 全局变量 ======================
     const PROJECT_ID = '<%= projectId %>';
     const statusMap = { '需求': 0, '准备': 1, '生产': 2, '质检': 3, '运输': 4, '完成': 5 };
-    const stepsName = ['需求', '准备', '生产', '质检', '运输', '完成'];   // 逻辑保持不变
+    const stepsName = ['需求', '准备', '生产', '质检', '运输', '完成'];
     const stepsId = ['requirement', 'preparation', 'production', 'qa', 'transport', 'done'];
 
     let BACKEND_DATA = {};
@@ -384,36 +387,31 @@
         });
     }
 
-    // 更新所有带 data-i18n 的元素
     function updateAllContent() {
         document.querySelectorAll('[data-i18n]').forEach(el => {
             const key = el.getAttribute('data-i18n');
             el.textContent = i18next.t(key);
         });
 
-        // 处理 placeholder
         document.querySelectorAll('[data-i18n-placeholder]').forEach(el => {
             const key = el.getAttribute('data-i18n-placeholder');
             el.placeholder = i18next.t(key);
         });
 
-        // 动态标题
         document.title = i18next.t('title');
 
-        // Quill placeholder（如果已初始化）
         if (quill) {
             quill.root.setAttribute('data-placeholder', i18next.t('editor.placeholder'));
         }
     }
 
-    // 高亮当前语言按钮
     function highlightActiveLangButton() {
         document.querySelectorAll('.lang-btn').forEach(btn => {
             btn.classList.toggle('active', btn.dataset.lang === i18next.language);
         });
     }
 
-    // ====================== 验证逻辑（稍作翻译适配） ======================
+    // ====================== 验证逻辑 ======================
     async function verifyToken(token, isAutoLogin = false) {
         const btn = document.getElementById('verifyBtn');
         const errorMsg = document.getElementById('authError');
@@ -436,14 +434,12 @@
 
             if (result.success) {
                 localStorage.setItem(STORAGE_KEY, token);
-                
                 modal.style.display = 'none';
                 appContainer.style.display = 'block';
                 
                 BACKEND_DATA = result.data;
                 const projectData = BACKEND_DATA.project_data || {};
 
-                // 动态字段（后端数据保持原样，UI文字已翻译）
                 document.getElementById('displayType').innerText = projectData.type || i18next.t('default.type');
                 document.getElementById('displayUuid').innerText = projectData.uuid || PROJECT_ID;
                 document.getElementById('displayStatus').innerText = projectData.status || i18next.t('default.unknown');
@@ -453,7 +449,6 @@
                 else if (BACKEND_DATA.role === 'write') roleText = i18next.t('role.collaborator');
                 document.getElementById('displayRole').innerText = roleText;
 
-                // 数据标准化（保持不变）
                 const rawNodes = projectData.nodesData || BACKEND_DATA.nodesData || {};
                 const normalizedNodes = {};
 
@@ -511,19 +506,15 @@
         }
     }
 
-    // ====================== 页面加载 ======================
     document.addEventListener('DOMContentLoaded', () => {
-        // 1. 初始化 i18next
         initI18next();
 
-        // 2. 自动登录（如果有 Token）
         const savedToken = localStorage.getItem(STORAGE_KEY);
         if (savedToken) {
             document.getElementById('verifyBtn').innerText = i18next.t('default.verifying');
             verifyToken(savedToken, true);
         }
 
-        // 3. 语言切换按钮事件
         document.querySelectorAll('.lang-btn').forEach(btn => {
             btn.addEventListener('click', () => {
                 const newLang = btn.dataset.lang;
@@ -531,8 +522,6 @@
                     localStorage.setItem(LANG_STORAGE_KEY, newLang);
                     updateAllContent();
                     highlightActiveLangButton();
-                    
-                    // 重新渲染动态部分（步骤条、时间轴）
                     if (state.nodesData) {
                         renderStepper();
                         renderTimeline();
@@ -542,7 +531,6 @@
         });
     });
 
-    // ====================== 验证按钮 & Enter ======================
     document.getElementById('verifyBtn').addEventListener('click', () => {
         const token = document.getElementById('tokenInput').value.trim();
         if (token) verifyToken(token, false);
@@ -555,7 +543,6 @@
         }
     });
 
-    // ====================== 初始化应用 ======================
     function initApp() {
         const editorContainer = document.querySelector('.editor-container');
         const editorFooter = document.querySelector('.editor-footer');
@@ -566,8 +553,7 @@
         } else {
             if (editorContainer) editorContainer.style.display = 'block';
             if (editorFooter) editorFooter.style.display = 'flex';
-            // 在 initApp() 函数里，替换原来的 Quill 初始化部分为下面这段
-
+            
             if (!quill) {
                 quill = new Quill('#editor', {
                     theme: 'snow',
@@ -579,10 +565,9 @@
                                 ['bold', 'italic', 'underline', 'strike'],
                                 [{ 'list': 'ordered' }, { 'list': 'bullet' }],
                                 ['blockquote', 'code-block'],
-                                ['image', 'link', 'video'],           // 保留 image 按钮
+                                ['image', 'link', 'video'],
                                 ['clean']
                             ],
-                            // 关键：自定义 image 处理函数
                             handlers: {
                                 'image': imageHandler
                             }
@@ -597,40 +582,37 @@
         }
         renderStepper();
         renderTimeline();
-        updateAllContent();   // 确保所有文字已翻译
+        updateAllContent();
     }
 
-    // Quill 自定义图片上传处理函数
+    // Quill 图片上传处理函数
     function imageHandler() {
         const input = document.createElement('input');
         input.setAttribute('type', 'file');
         input.setAttribute('accept', 'image/*');
         input.click();
-    
+
         input.onchange = async () => {
             const file = input.files[0];
             if (!file) return;
-    
-            // 可选：大小限制
+
             if (file.size > 5 * 1024 * 1024) {
                 alert('图片大小不能超过 5MB');
                 return;
             }
-    
+
             const formData = new FormData();
             formData.append('image', file);
-    
+
             try {
-                // 调用后端上传接口（与 server.js 对应）
                 const response = await fetch('/api/upload-image', {
                     method: 'POST',
                     body: formData
                 });
-    
+
                 const data = await response.json();
-    
+
                 if (data.success && data.url) {
-                    // 插入图片，使用返回的 URL
                     const range = quill.getSelection(true);
                     quill.insertEmbed(range.index, 'image', data.url);
                     quill.setSelection(range.index + 1);
@@ -644,7 +626,6 @@
         };
     }
 
-    // ====================== 进度条（支持翻译） ======================
     function renderStepper() {
         const container = document.getElementById('stepperContainer');
         container.innerHTML = '';
@@ -663,7 +644,6 @@
             }
             
             node.className = classNames.join(' ');
-            // 使用 i18next 翻译步骤名称
             const translatedTitle = i18next.t(`step.${title}`);
             node.innerHTML = `<div class="step-oval">${translatedTitle}</div>`;
             
@@ -688,19 +668,14 @@
         });
 
         const nextContainer = document.getElementById('nextStepContainer');
-        if (
-            BACKEND_DATA.role === 'read' || 
-            BACKEND_DATA.role === 'write' || 
-            state.maxStepIndex >= stepsName.length - 1 || 
-            state.activeStepIndex !== state.maxStepIndex
-        ) {
+        // write 和 admin 都能看到
+        if (BACKEND_DATA.role === 'read' || state.maxStepIndex >= stepsName.length - 1 || state.activeStepIndex !== state.maxStepIndex) {
             nextContainer.style.display = 'none';
         } else {
             nextContainer.style.display = 'flex';
         }
     }
 
-    // ====================== 时间轴（支持翻译） ======================
     function renderTimeline() {
         const stepId = stepsId[state.activeStepIndex];
         let records = state.nodesData[stepId] || [];
@@ -739,37 +714,35 @@
         }).join('');
     }
 
-    // ====================== 保存按钮（增量发送） ======================
+    // ====================== 保存按钮 ======================
     document.getElementById('submitBtn').addEventListener('click', async () => {
         if (BACKEND_DATA.role === 'read') return;
         if (!quill) return;
-    
+
         if (quill.getLength() <= 1 && !quill.root.innerHTML.includes('<img')) {
             alert(i18next.t('alert.empty') || "内容为空");
             return;
         }
-    
+
         const html = quill.root.innerHTML;
         const stepId = stepsId[state.activeStepIndex]; 
         const now = new Date();
         const time = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')} ${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')} (UTC+8)`;
         
         const newRecord = { time, html };
-    
-        // 1. 乐观更新：立即显示在前端
+
         if (!state.nodesData[stepId]) state.nodesData[stepId] = [];
         state.nodesData[stepId].push(newRecord);
         quill.setContents([{ insert: '\n' }]);
         renderTimeline();
-    
-        // 2. 发送给 n8n（只传增量）
+
         const btn = document.getElementById('submitBtn');
         const originalText = btn.innerText;
         btn.innerText = "保存中...";
         btn.disabled = true;
-    
+
         try {
-            const res = await fetch('/api/append-record', {   // ← 新接口
+            const res = await fetch('/api/append-record', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ 
@@ -778,7 +751,7 @@
                     newRecord: newRecord 
                 })
             });
-    
+
             const data = await res.json();
             if (data.success) {
                 btn.innerText = "已保存 ✓";
@@ -791,7 +764,6 @@
             }
         } catch(e) {
             alert(i18next.t('alert.save_fail') || "保存失败");
-            // 失败时回滚（可选）
             state.nodesData[stepId].pop();
             renderTimeline();
             btn.innerText = originalText;
@@ -799,23 +771,17 @@
         }
     });
 
-    // ====================== 下一阶段 ======================
+    // ====================== 此阶段已完成按钮（新逻辑） ======================
     document.getElementById('nextStepBtn').addEventListener('click', async () => {
-        // 权限检查：write 和 admin 都可以操作
         if (BACKEND_DATA.role !== 'write' && BACKEND_DATA.role !== 'admin') return;
-
-        // 只有在当前最新阶段才显示按钮（避免误操作历史阶段）
         if (state.activeStepIndex !== state.maxStepIndex) return;
 
-        // 弹出确认弹窗
         const confirmed = confirm(i18next.t('confirm.complete_stage') || "确认提交“此阶段已完成”？\n此操作将通知管理员，正在更新项目进展。");
-
         if (!confirmed) return;
 
-        // 禁用按钮，显示加载中
         const btn = document.getElementById('nextStepBtn');
         const originalText = btn.innerText;
-        btn.innerText = i18next.t('loading') || "处理中...";
+        btn.innerText = i18next.t('modal.verifying') || "处理中...";
         btn.style.pointerEvents = 'none';
 
         try {
@@ -824,25 +790,23 @@
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
                     projectId: PROJECT_ID,
-                    stepId: stepsId[state.maxStepIndex], // 当前阶段
+                    stepId: stepsId[state.maxStepIndex],
                     newRecord: {
                         time: `${new Date().toLocaleString('zh-CN', { timeZone: 'Asia/Shanghai' })} (UTC+8)`,
                         html: `<p style="color:#aa0000; font-weight:bold;">【系统通知】此阶段已完成，已通知管理员更新进展</p>`
                     },
-                    action: "complete_current_stage"  // ← 新增字段，告诉 n8n 这是完成阶段请求
+                    action: "complete_current_stage"
                 })
             });
 
             const data = await res.json();
-
             if (data.success) {
                 alert(i18next.t('alert.complete_success') || "已通知管理员，正在更新项目进展");
-                // 可选：前端显示已完成状态（不推进，只是视觉提示）
                 btn.innerText = "已提交完成";
                 btn.style.color = '#888';
                 btn.style.pointerEvents = 'none';
             } else {
-                throw new Error("提交失败");
+                throw new Error();
             }
         } catch (e) {
             alert(i18next.t('alert.complete_fail') || "通知管理员失败，请稍后重试");
@@ -850,6 +814,9 @@
             btn.style.pointerEvents = 'auto';
         }
     });
+
+    // ====================== 动态年份 ======================
+    document.getElementById('currentYear').innerText = new Date().getFullYear();
 </script>
 </body>
 </html>
