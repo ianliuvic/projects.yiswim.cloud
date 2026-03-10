@@ -25,18 +25,11 @@ app.get('/', (req, res) => {
 // 【API1】处理用户提交数据的接口（保持不变）
 // 【API】增量保存单条记录（推荐新名称）
 app.post('/api/append-record', async (req, res) => {
-    const { projectId, stepId, newRecord, action, metadata } = req.body;
+    const { projectId, stepId, newRecord, action } = req.body;
     
     if (!projectId || !stepId || !newRecord) {
         return res.status(400).json({ success: false, message: "缺少必要参数" });
     }
-
-    // 1. 获取真实 IP (得益于上面的 trust proxy 设置)
-    const clientIp = req.ip || req.headers['x-forwarded-for'] || req.socket.remoteAddress;
-
-    // 2. 获取请求时间 (北京时间)
-    // 这里直接在 Node.js 生成格式化好的时间，方便 n8n 直接用
-    const requestTime = new Date().toLocaleString('zh-CN', { timeZone: 'Asia/Shanghai' });
 
     try {
         const n8nUrl = `http://n8n-ywock00sw4ko80c4w4ogs8so:5678/webhook/append-record`;  // ← 改成你上面的 webhook 路径
@@ -47,13 +40,7 @@ app.post('/api/append-record', async (req, res) => {
                 projectId,
                 stepId,
                 newRecord,
-                action,
-                // --- 传给 n8n 的额外信息 ---
-                metadata: {
-                    ip: clientIp,
-                    time: requestTime,
-                    userAgent: req.headers['user-agent'] // 可选：记录用户浏览器
-                }
+                action
             })
         });
 
@@ -76,12 +63,25 @@ app.post('/api/upload', (req, res) => {
 // 【API2 新增】验证 Token 并获取项目数据
 app.post('/api/get-project', async (req, res) => {
     const { projectId, token } = req.body;
+    
+     // --- 新增：获取 IP 和时间 ---
+    const clientIp = req.ip || req.headers['x-forwarded-for'] || req.socket.remoteAddress;
+    const requestTime = new Date().toLocaleString('zh-CN', { timeZone: 'Asia/Shanghai' });
+    
     try {
         const n8nUrl = `http://n8n-ywock00sw4ko80c4w4ogs8so:5678/webhook/verify-project`;
         const response = await fetch(n8nUrl, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ projectId, token })
+            body: JSON.stringify({ 
+                projectId,
+                token,
+                // --- 新增：传给 n8n 的额外信息 ---
+                metadata: {
+                    ip: clientIp,
+                    time: requestTime
+                }
+            })
         });
         
         const rawResult = await response.json();
@@ -161,6 +161,7 @@ app.post('/api/upload-image', upload.single('image'), (req, res) => {
     url: imageUrl
   });
 });
+
 
 
 
