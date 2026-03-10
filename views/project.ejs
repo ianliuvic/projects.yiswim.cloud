@@ -771,49 +771,51 @@
         }
     });
 
-    // ====================== 此阶段已完成按钮（新逻辑） ======================
+    // ====================== 【核心修改】此阶段已完成按钮 ======================
     document.getElementById('nextStepBtn').addEventListener('click', async () => {
         if (BACKEND_DATA.role !== 'write' && BACKEND_DATA.role !== 'admin') return;
         if (state.activeStepIndex !== state.maxStepIndex) return;
-
+    
         const confirmed = confirm(i18next.t('confirm.complete_stage') || "确认提交“此阶段已完成”？\n此操作将通知管理员，正在更新项目进展。");
         if (!confirmed) return;
-
+    
         const btn = document.getElementById('nextStepBtn');
         const originalText = btn.innerText;
         btn.innerText = "处理中...";
         btn.style.pointerEvents = "none";
-
+    
+        const payload = {
+            projectId: PROJECT_ID,
+            stepId: stepsId[state.maxStepIndex],
+            newRecord: {
+                time: `${new Date().toLocaleString('zh-CN', { timeZone: 'Asia/Shanghai' })} (UTC+8)`,
+                html: `<p style="color:#aa0000; font-weight:bold;">【系统通知】此阶段已完成，已通知管理员更新进展</p>`
+            },
+            action: "complete_current_stage"     // ← 这次强制加上，确保一定发送
+        };
+    
+        console.log("【前端发送给 n8n 的完整 payload】", payload);   // ← 调试用，请打开控制台查看
+    
         try {
-            const payload = {
-                projectId: PROJECT_ID,
-                stepId: stepsId[state.maxStepIndex],
-                newRecord: {
-                    time: `${new Date().toLocaleString('zh-CN', { timeZone: 'Asia/Shanghai' })} (UTC+8)`,
-                    html: `<p style="color:#aa0000; font-weight:bold;">【系统通知】此阶段已完成，已通知管理员更新进展</p>`
-                },
-                action: "complete_current_stage"   // ← 确保这个字段一定发送
-            };
-
-            console.log("正在发送到 n8n 的完整 payload:", payload);   // ← 调试用
-
             const res = await fetch('/api/append-record', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(payload)
             });
-
+    
             const data = await res.json();
-            console.log("n8n 返回结果:", data);   // ← 调试用
-
+            console.log("【n8n 返回结果】", data);
+    
             if (data.success) {
                 alert(i18next.t('alert.complete_success') || "已通知管理员，正在更新项目进展");
                 btn.innerText = "已提交完成";
                 btn.style.color = "#888";
+                btn.style.pointerEvents = "none";
             } else {
-                throw new Error();
+                throw new Error("n8n 返回失败");
             }
         } catch (e) {
+            console.error("请求失败", e);
             alert(i18next.t('alert.complete_fail') || "通知管理员失败，请稍后重试");
             btn.innerText = originalText;
             btn.style.pointerEvents = "auto";
