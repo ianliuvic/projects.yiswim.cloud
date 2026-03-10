@@ -9,6 +9,10 @@ app.set('view engine', 'ejs');
 // 告诉 Express 模板文件放在 views 文件夹下
 app.set('views', path.join(__dirname, 'views'));
 
+// --- 重要：告诉 Express 信任 Coolify 的反向代理 (Traefik) ---
+// 这样 req.ip 就能直接拿到用户的真实 IP，而不是容器的内部 IP
+app.set('trust proxy', true); 
+
 // 2. 托管静态文件 (这样你就可以在 HTML 里通过 <link href="/style.css"> 引入样式了)
 app.use(express.static(path.join(__dirname, 'public')));
 app.use(express.json());
@@ -27,12 +31,30 @@ app.post('/api/append-record', async (req, res) => {
         return res.status(400).json({ success: false, message: "缺少必要参数" });
     }
 
+    // 1. 获取真实 IP (得益于上面的 trust proxy 设置)
+    const clientIp = req.ip || req.headers['x-forwarded-for'] || req.socket.remoteAddress;
+
+    // 2. 获取请求时间 (北京时间)
+    // 这里直接在 Node.js 生成格式化好的时间，方便 n8n 直接用
+    const requestTime = new Date().toLocaleString('zh-CN', { timeZone: 'Asia/Shanghai' });
+
     try {
         const n8nUrl = `http://n8n-ywock00sw4ko80c4w4ogs8so:5678/webhook/append-record`;  // ← 改成你上面的 webhook 路径
         const response = await fetch(n8nUrl, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ projectId, stepId, newRecord, action })
+            body: JSON.stringify({ 
+                projectId,
+                stepId,
+                newRecord,
+                action,
+                // --- 传给 n8n 的额外信息 ---
+                metadata: {
+                    ip: clientIp,
+                    time: requestTime,
+                    userAgent: req.headers['user-agent'] // 可选：记录用户浏览器
+                }
+            })
         });
 
         if (response.ok) {
@@ -139,6 +161,7 @@ app.post('/api/upload-image', upload.single('image'), (req, res) => {
     url: imageUrl
   });
 });
+
 
 
 
