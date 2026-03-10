@@ -2,7 +2,8 @@
 <html lang="zh-CN">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <!-- 确保移动端视口缩放正确 -->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>项目跟踪 - 红绣服饰</title>
     
     <!-- 引入 Quill 核心样式 -->
@@ -26,7 +27,8 @@
         }
 
         * { box-sizing: border-box; margin: 0; padding: 0; }
-        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background-color: var(--bg-color); color: var(--gray-800); padding: 20px; line-height: 1.5; }
+        /* 移动端优化：调整 body 基础 padding */
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background-color: var(--bg-color); color: var(--gray-800); padding: 20px; line-height: 1.5; -webkit-font-smoothing: antialiased; }
         
         .container { 
             margin: 0 auto; 
@@ -35,11 +37,12 @@
             position: relative; 
         }
         
-        button { cursor: pointer; border: none; font-family: inherit; transition: all 0.2s; }
+        button { cursor: pointer; border: none; font-family: inherit; transition: all 0.2s; outline: none; }
 
         .lang-switch {
             position: absolute;
-            right: 20px;
+            right: 0;
+            top: 0;
             z-index: 100;
             display: flex;
             gap: 6px;
@@ -58,41 +61,38 @@
             cursor: pointer;
             transition: all 0.2s;
         }
-        .lang-btn.active {
-            background: var(--primary);
-            color: white;
-            border-color: var(--primary);
-        }
+        .lang-btn.active { background: var(--primary); color: white; border-color: var(--primary); }
 
         .brand-header {
-            display: flex; align-items: center; margin-bottom: 24px;
+            display: flex; align-items: center; margin-bottom: 24px; min-height: 48px;
+            padding-right: 120px; /* 预留给语言切换按钮的空间，防止重叠 */
         }
-        .brand-logo {
-            width: 40px; height: 40px; margin-right: 14px; border-radius: 6px; object-fit: contain;
-            background-color: var(--white); box-shadow: 0 2px 4px rgba(0,0,0,0.05);
-        }
-        .brand-title {
-            font-size: 22px; font-weight: bold; color: var(--primary); letter-spacing: 1px;
-        }
+        .brand-logo { width: 40px; height: 40px; margin-right: 14px; border-radius: 6px; object-fit: contain; background-color: var(--white); box-shadow: 0 2px 4px rgba(0,0,0,0.05); }
+        .brand-title { font-size: 22px; font-weight: bold; color: var(--primary); letter-spacing: 1px; line-height: 1.2; }
 
         .project-info-grid {
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); 
-            gap: 20px;
-            background: var(--white);
-            padding: 24px;
-            border-radius: var(--radius);
-            border: 1px solid var(--gray-200);
-            margin-bottom: 30px;
+            gap: 20px; background: var(--white); padding: 24px; border-radius: var(--radius); border: 1px solid var(--gray-200); margin-bottom: 30px;
         }
         .info-item { display: flex; flex-direction: column; }
         .info-label { font-size: 12px; color: var(--gray-500); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 6px; }
-        .info-value { font-size: 15px; font-weight: 600; color: var(--gray-800); }
+        .info-value { font-size: 15px; font-weight: 600; color: var(--gray-800); word-break: break-all; }
         .info-value.mono { font-family: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, Courier, monospace; font-size: 14px; color: var(--gray-500); }
         .info-value.highlight { color: var(--primary); }
 
-        .stepper-container { display: flex; align-items: center; justify-content: space-between; margin: 40px 0; }
-        .step-node { display: flex; align-items: center; z-index: 2; cursor: pointer; transition: all 0.2s; }
+        /* 移动端优化：步骤条容器支持横向滚动，隐藏滚动条 */
+        .stepper-container { 
+            display: flex; align-items: center; justify-content: space-between; 
+            margin: 40px 0; 
+            overflow-x: auto; 
+            padding-bottom: 10px; /* 给阴影留空间 */
+            -webkit-overflow-scrolling: touch; 
+            scrollbar-width: none; /* Firefox */
+        }
+        .stepper-container::-webkit-scrollbar { display: none; } /* Chrome/Safari */
+        
+        .step-node { display: flex; align-items: center; z-index: 2; cursor: pointer; transition: all 0.2s; flex-shrink: 0; }
         .step-oval { 
             width: 100px; height: 40px; border-radius: 20px; background-color: var(--white); 
             border: 2px solid var(--gray-300); color: var(--gray-500); 
@@ -103,7 +103,7 @@
         .step-node.completed .step-oval { background-color: var(--white); border-color: var(--primary); color: var(--primary); }
         .step-node.locked { cursor: not-allowed; }
         .step-node.locked .step-oval { background-color: var(--gray-100); border-color: var(--gray-200); color: var(--gray-400); }
-        .step-line { flex: 1; height: 8px; background-color: var(--gray-200); z-index: 1; margin: 0 -1px; transition: all 0.3s; }
+        .step-line { flex: 1; height: 8px; background-color: var(--gray-200); z-index: 1; margin: 0 -1px; transition: all 0.3s; min-width: 20px; }
         .step-line.completed { background-color: var(--primary); }
         .step-line.half-active { background: linear-gradient(to right, var(--primary) 25%, var(--gray-200) 75%); }
 
@@ -113,7 +113,7 @@
         .ql-editor { min-height: 200px; padding: 30px 40px; font-size: 16px; color: #374151; line-height: 1.7; }
         .ql-editor.ql-blank::before { left: 40px; right: 40px; font-style: normal; color: #adb5bd; }
         .editor-footer { padding: 15px 40px; border-top: 1px solid var(--gray-100); display: flex; justify-content: flex-end; }
-        .btn-submit { background: var(--primary); color: var(--white); border: none; padding: 10px 24px; border-radius: 6px; font-weight: bold; }
+        .btn-submit { background: var(--primary); color: var(--white); border: none; padding: 10px 24px; border-radius: 6px; font-weight: bold; font-size: 15px; }
         .btn-submit:hover { background: var(--primary-hover); }
 
         .history-section { padding: 40px; background: #fafafa; border-top: 1px solid var(--gray-100); flex-grow: 1; }
@@ -133,7 +133,82 @@
         .timeline-html > :last-child { margin-bottom: 0; }
         .timeline-html img { max-width: 100%; height: auto; border-radius: 6px; }
 
-        @media (max-width: 600px) {
+        .next-step-container { display: flex; justify-content: flex-end; margin-top: 16px; padding-right: 10px; }
+        .link-next-step { color: var(--gray-500); font-size: 14px; text-decoration: underline; cursor: pointer; transition: color 0.2s; padding: 10px; }
+        .link-next-step:hover { color: var(--primary); }
+
+        .page-footer { text-align: center; margin-top: 50px; padding-top: 20px; padding-bottom: 20px; border-top: 1px solid var(--gray-200); color: var(--gray-400); font-size: 13px; letter-spacing: 0.5px; }
+
+        .auth-modal-overlay {
+            position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
+            background: rgba(0, 0, 0, 0.5); backdrop-filter: blur(5px);
+            display: flex; justify-content: center; align-items: center; z-index: 9999;
+            padding: 20px;
+        }
+        .auth-modal {
+            background: var(--white); padding: 30px; border-radius: var(--radius);
+            width: 100%; max-width: 400px; box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+            text-align: center;
+        }
+        .auth-modal h2 { margin-bottom: 10px; color: var(--gray-800); }
+        .auth-modal p { margin-bottom: 20px; color: var(--gray-500); font-size: 14px; }
+        .auth-modal input {
+            width: 100%; padding: 14px; border: 1px solid var(--gray-300);
+            border-radius: 6px; margin-bottom: 15px; font-size: 16px; outline: none;
+            text-align: center;
+        }
+        .auth-modal input:focus { border-color: var(--primary); }
+        .auth-modal button {
+            width: 100%; padding: 14px; background: var(--primary); color: var(--white);
+            border-radius: 6px; font-size: 16px; font-weight: bold; border: none; cursor: pointer;
+        }
+        .auth-modal button:hover { background: var(--primary-hover); }
+        .auth-modal button:disabled { background: var(--gray-400); cursor: not-allowed; }
+        .auth-error { color: #dc2626; font-size: 13px; margin-top: 10px; display: none; }
+
+        .timeline-item.starting-record {
+            margin-bottom: 32px; padding-bottom: 20px; border-bottom: 1px dashed var(--primary);
+            background: rgba(170, 0, 0, 0.03); border-radius: 8px;
+        }
+        .timeline-item.starting-record .timeline-dot {
+            background: var(--primary); border-color: white; box-shadow: 0 0 0 4px rgba(170,0,0,0.25);
+        }
+
+        /* ================= 核心：移动端适配 (小于 768px) ================= */
+        @media (max-width: 768px) {
+            body { padding: 12px; }
+            
+            /* 语言切换和 Header 布局 */
+            .brand-header { padding-right: 0; position: relative; margin-bottom: 36px; }
+            .brand-logo { width: 32px; height: 32px; margin-right: 10px; }
+            .brand-title { font-size: 18px; }
+            .lang-switch { top: 40px; right: 0; }
+
+            /* 信息网格：缩小间距，改版布局 */
+            .project-info-grid { grid-template-columns: 1fr 1fr; gap: 15px; padding: 16px; margin-bottom: 20px; }
+            
+            /* 步骤条：允许横滑，缩小节点尺寸 */
+            .stepper-container { justify-content: flex-start; margin: 20px 0 30px 0; }
+            .step-oval { width: 70px; height: 32px; font-size: 13px; border-width: 1.5px; }
+            .step-line { min-width: 25px; height: 4px; }
+
+            /* 编辑器：减少两侧留白，增大可视区域 */
+            .ql-toolbar.ql-snow { padding: 10px 12px; }
+            .ql-editor { padding: 20px 15px; min-height: 150px; font-size: 15px; }
+            .ql-editor.ql-blank::before { left: 15px; right: 15px; }
+            .editor-footer { padding: 12px 15px; justify-content: stretch; }
+            
+            /* 提交按钮：手机端全宽，更易点击 */
+            .btn-submit { width: 100%; padding: 12px; font-size: 16px; }
+
+            /* 历史记录：减少留白 */
+            .history-section { padding: 20px 15px; }
+            .timeline-divider { margin-right: 12px; }
+            
+            /* 其他完成按钮 */
+            .next-step-container { justify-content: center; padding-right: 0; }
+
+            /* N8N 注入的内联 Flex 样式修复 (原有的手机端媒体查询) */
             .timeline-html > div > div[style*="display: flex"] {
                 flex-direction: column !important;
                 align-items: center !important;
@@ -143,50 +218,10 @@
             }
         }
 
-        .next-step-container { display: flex; justify-content: flex-end; margin-top: 16px; padding-right: 10px; }
-        .link-next-step { color: var(--gray-500); font-size: 14px; text-decoration: underline; cursor: pointer; transition: color 0.2s; }
-        .link-next-step:hover { color: var(--primary); }
-
-        .page-footer { text-align: center; margin-top: 50px; padding-top: 20px; padding-bottom: 20px; border-top: 1px solid var(--gray-200); color: var(--gray-400); font-size: 13px; letter-spacing: 0.5px; }
-
-        .auth-modal-overlay {
-            position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
-            background: rgba(0, 0, 0, 0.5); backdrop-filter: blur(5px);
-            display: flex; justify-content: center; align-items: center; z-index: 9999;
-        }
-        .auth-modal {
-            background: var(--white); padding: 30px; border-radius: var(--radius);
-            width: 90%; max-width: 400px; box-shadow: 0 10px 25px rgba(0,0,0,0.1);
-            text-align: center;
-        }
-        .auth-modal h2 { margin-bottom: 10px; color: var(--gray-800); }
-        .auth-modal p { margin-bottom: 20px; color: var(--gray-500); font-size: 14px; }
-        .auth-modal input {
-            width: 100%; padding: 12px; border: 1px solid var(--gray-300);
-            border-radius: 6px; margin-bottom: 15px; font-size: 16px; outline: none;
-            text-align: center;
-        }
-        .auth-modal input:focus { border-color: var(--primary); }
-        .auth-modal button {
-            width: 100%; padding: 12px; background: var(--primary); color: var(--white);
-            border-radius: 6px; font-size: 16px; font-weight: bold; border: none; cursor: pointer;
-        }
-        .auth-modal button:hover { background: var(--primary-hover); }
-        .auth-modal button:disabled { background: var(--gray-400); cursor: not-allowed; }
-        .auth-error { color: #dc2626; font-size: 13px; margin-top: 10px; display: none; }
-
-        .timeline-item.starting-record {
-            margin-bottom: 32px;
-            padding-bottom: 20px;
-            border-bottom: 1px dashed var(--primary);
-            background: rgba(170, 0, 0, 0.03);
-            border-radius: 8px;
-        }
-
-        .timeline-item.starting-record .timeline-dot {
-            background: var(--primary);
-            border-color: white;
-            box-shadow: 0 0 0 4px rgba(170,0,0,0.25);
+        /* 极小屏幕优化 (如 iPhone SE) */
+        @media (max-width: 400px) {
+            .project-info-grid { grid-template-columns: 1fr; gap: 12px; }
+            .step-oval { width: 64px; font-size: 12px; }
         }
     </style>
 </head>
@@ -205,15 +240,15 @@
 
 <div class="container" id="appContainer">
     
-    <!-- 右上角中英切换按钮 -->
-    <div class="lang-switch">
-        <button class="lang-btn active" data-lang="zh">中文</button>
-        <button class="lang-btn" data-lang="en">English</button>
-    </div>
-
     <div class="brand-header">
         <img src="/logo.png" alt="Logo" class="brand-logo" onerror="this.src='data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdib3g9IjAgMCAxMDAgMTAwIj48cmVjdCB3aWR0aD0iMTAwIiBoZWlnaHQ9IjEwMCIgZmlsbD0iI2RkZCIvPjwvc3ZnPg=='" />
         <div class="brand-title" data-i18n="brand.title">项目跟踪系统</div>
+        
+        <!-- 右上角中英切换按钮 -->
+        <div class="lang-switch">
+            <button class="lang-btn active" data-lang="zh">中文</button>
+            <button class="lang-btn" data-lang="en">English</button>
+        </div>
     </div>
 
     <div class="project-info-grid">
@@ -652,6 +687,10 @@
                     state.activeStepIndex = index; 
                     renderStepper(); 
                     renderTimeline(); 
+                    // 移动端点击自动滚动居中
+                    if (window.innerWidth <= 768) {
+                        node.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
+                    }
                 };
             }
             
@@ -668,7 +707,6 @@
         });
 
         const nextContainer = document.getElementById('nextStepContainer');
-        // write 和 admin 都能看到
         if (BACKEND_DATA.role === 'read' || state.maxStepIndex >= stepsName.length - 1 || state.activeStepIndex !== state.maxStepIndex) {
             nextContainer.style.display = 'none';
         } else {
@@ -791,10 +829,8 @@
                 time: `${new Date().toLocaleString('zh-CN', { timeZone: 'Asia/Shanghai' })} (UTC+8)`,
                 html: `<p style="color:#aa0000; font-weight:bold;">【系统通知】此阶段已完成，已通知管理员更新进展</p>`
             },
-            action: "complete_current_stage"     // ← 这次强制加上，确保一定发送
+            action: "complete_current_stage" 
         };
-    
-        console.log("【前端发送给 n8n 的完整 payload】", payload);   // ← 调试用，请打开控制台查看
     
         try {
             const res = await fetch('/api/append-record', {
@@ -804,8 +840,6 @@
             });
     
             const data = await res.json();
-            console.log("【n8n 返回结果】", data);
-    
             if (data.success) {
                 alert(i18next.t('alert.complete_success') || "已通知管理员，正在更新项目进展");
                 btn.innerText = "已提交完成";
