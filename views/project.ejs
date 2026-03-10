@@ -223,6 +223,37 @@
             .project-info-grid { grid-template-columns: 1fr; gap: 12px; }
             .step-oval { width: 64px; font-size: 12px; }
         }
+
+        /* 大图预览遮罩层样式 */
+        .img-preview-modal {
+            display: none; /* 默认隐藏 */
+            position: fixed;
+            z-index: 20000; /* 确保在最前面 */
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0,0,0,0.9); /* 黑色半透明背景 */
+            cursor: zoom-out; /* 点击缩小 */
+            justify-content: center;
+            align-items: center;
+        }
+        
+        .img-preview-modal img {
+            max-width: 95%;
+            max-height: 95%;
+            object-fit: contain;
+            border-radius: 4px;
+            box-shadow: 0 0 20px rgba(0,0,0,0.5);
+            transition: transform 0.3s ease;
+        }
+        
+        /* 移动端优化：大图占满宽度 */
+        @media (max-width: 768px) {
+            .img-preview-modal img {
+                width: 100%;
+            }
+        }
     </style>
 </head>
 <body>
@@ -299,6 +330,11 @@
     </div>
 
 </div> 
+
+<!-- 用于查看大图的容器 -->
+<div id="imagePreviewModal" class="img-preview-modal" onclick="closeImagePreview()">
+    <img id="previewImage" src="" alt="预览图">
+</div>
 
 <script src="/quill.min.js"></script>
 <script src="/image-resize.min.js"></script>
@@ -618,6 +654,36 @@
         renderStepper();
         renderTimeline();
         updateAllContent();
+    }
+
+    // 1. 监听整个历史记录容器的点击事件
+    document.getElementById('timelineContainer').addEventListener('click', function(e) {
+        // 检查点击的是不是图片 (IMG 标签)
+        if (e.target.tagName === 'IMG') {
+            const imgSrc = e.target.src; // 获取被点击图片的地址
+            openImagePreview(imgSrc);
+        }
+    });
+    
+    // 2. 打开预览函数
+    function openImagePreview(src) {
+        const modal = document.getElementById('imagePreviewModal');
+        const fullImg = document.getElementById('previewImage');
+        
+        fullImg.src = src; // 设置大图地址
+        modal.style.display = 'flex'; // 显示容器
+        
+        // 禁止页面滚动（防止看大图时背景还在滚）
+        document.body.style.overflow = 'hidden';
+    }
+    
+    // 3. 关闭预览函数
+    function closeImagePreview() {
+        const modal = document.getElementById('imagePreviewModal');
+        modal.style.display = 'none'; // 隐藏容器
+        
+        // 恢复页面滚动
+        document.body.style.overflow = 'auto';
     }
 
     // Quill 图片上传处理函数
