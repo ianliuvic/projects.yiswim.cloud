@@ -32,7 +32,7 @@ app.post('/api/append-record', async (req, res) => {
         const response = await fetch(n8nUrl, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ projectId, stepId, newRecord })
+            body: JSON.stringify({ projectId, stepId, newRecord, action })
         });
 
         if (response.ok) {
@@ -139,6 +139,7 @@ app.post('/api/upload-image', upload.single('image'), (req, res) => {
     url: imageUrl
   });
 });
+
 
 
 
