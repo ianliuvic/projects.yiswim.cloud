@@ -28,7 +28,7 @@ app.post('/api/append-record', async (req, res) => {
     }
 
     try {
-        const n8nUrl = `http://n8n-ywock00sw4ko80c4w4ogs8so:5678/webhook-test/append-record`;  // ← 改成你上面的 webhook 路径
+        const n8nUrl = `http://n8n-ywock00sw4ko80c4w4ogs8so:5678/webhook/append-record`;  // ← 改成你上面的 webhook 路径
         const response = await fetch(n8nUrl, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -55,7 +55,7 @@ app.post('/api/upload', (req, res) => {
 app.post('/api/get-project', async (req, res) => {
     const { projectId, token } = req.body;
     try {
-        const n8nUrl = `http://n8n-ywock00sw4ko80c4w4ogs8so:5678/webhook-test/verify-project`;
+        const n8nUrl = `http://n8n-ywock00sw4ko80c4w4ogs8so:5678/webhook/verify-project`;
         const response = await fetch(n8nUrl, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -139,6 +139,7 @@ app.post('/api/upload-image', upload.single('image'), (req, res) => {
     url: imageUrl
   });
 });
+
 
 
 
