@@ -224,36 +224,60 @@
             .step-oval { width: 64px; font-size: 12px; }
         }
 
-        /* 大图预览遮罩层样式 */
-        .img-preview-modal {
-            display: none; /* 默认隐藏 */
-            position: fixed;
-            z-index: 20000; /* 确保在最前面 */
-            left: 0;
-            top: 0;
-            width: 100%;
-            height: 100%;
-            background-color: rgba(0,0,0,0.9); /* 黑色半透明背景 */
-            cursor: zoom-out; /* 点击缩小 */
-            justify-content: center;
-            align-items: center;
-        }
-        
-        .img-preview-modal img {
-            max-width: 95%;
-            max-height: 95%;
-            object-fit: contain;
-            border-radius: 4px;
-            box-shadow: 0 0 20px rgba(0,0,0,0.5);
-            transition: transform 0.3s ease;
-        }
-        
-        /* 移动端优化：大图占满宽度 */
-        @media (max-width: 768px) {
-            .img-preview-modal img {
-                width: 100%;
-            }
-        }
+    /* 大图预览遮罩层 */
+    .img-preview-modal {
+        display: none;
+        position: fixed;
+        z-index: 20000;
+        left: 0; top: 0;
+        width: 100%; height: 100%;
+        background-color: rgba(0,0,0,0.95);
+        justify-content: center;
+        align-items: center;
+        user-select: none; /* 防止频繁点击选中文字 */
+    }
+    
+    .img-preview-modal img {
+        max-width: 90%;
+        max-height: 90%;
+        object-fit: contain;
+        transition: transform 0.2s;
+    }
+    
+    /* 预览层的导航箭头 */
+    .modal-nav-btn {
+        position: absolute;
+        top: 50%;
+        transform: translateY(-50%);
+        background: rgba(255,255,255,0.1);
+        color: white;
+        border: none;
+        font-size: 40px;
+        padding: 20px 15px;
+        cursor: pointer;
+        border-radius: 8px;
+        transition: background 0.3s;
+        z-index: 20001;
+    }
+    .modal-nav-btn:hover { background: rgba(255,255,255,0.2); }
+    .modal-nav-btn.prev { left: 10px; }
+    .modal-nav-btn.next { right: 10px; }
+    
+    /* 图片计数器 */
+    .modal-counter {
+        position: absolute;
+        bottom: 20px;
+        color: white;
+        font-size: 16px;
+        background: rgba(0,0,0,0.5);
+        padding: 5px 15px;
+        border-radius: 20px;
+    }
+    
+    /* 隐藏移动端不必要的箭头或调整大小 */
+    @media (max-width: 768px) {
+        .modal-nav-btn { padding: 15px 10px; font-size: 30px; background: transparent; }
+    }
     </style>
 </head>
 <body>
@@ -332,8 +356,17 @@
 </div> 
 
 <!-- 用于查看大图的容器 -->
-<div id="imagePreviewModal" class="img-preview-modal" onclick="closeImagePreview()">
-    <img id="previewImage" src="" alt="预览图">
+<div id="imagePreviewModal" class="img-preview-modal">
+    <!-- 点击背景关闭，但要排除点击按钮和图片本身 -->
+    <div id="modalBg" style="position:absolute; width:100%; height:100%; z-index:20000;" onclick="closeImagePreview()"></div>
+    
+    <button class="modal-nav-btn prev" id="modalPrev" onclick="changeImage(-1)">&#10094;</button>
+    
+    <img id="previewImage" src="" alt="预览图" style="position:relative; z-index:20001;">
+    
+    <button class="modal-nav-btn next" id="modalNext" onclick="changeImage(1)">&#10095;</button>
+    
+    <div class="modal-counter" id="modalCounter" style="z-index:20001;">1 / 1</div>
 </div>
 
 <script src="/quill.min.js"></script>
@@ -656,35 +689,80 @@
         updateAllContent();
     }
 
-    // 1. 监听整个历史记录容器的点击事件
+    let currentImageList = []; // 存储当前预览组的所有图片URL
+    let currentIndex = 0;      // 当前显示的索引
+    
     document.getElementById('timelineContainer').addEventListener('click', function(e) {
-        // 检查点击的是不是图片 (IMG 标签)
         if (e.target.tagName === 'IMG') {
-            const imgSrc = e.target.src; // 获取被点击图片的地址
-            openImagePreview(imgSrc);
+            // 1. 查找这张图是否属于一个图集 (n8n 生成的 .img-gallery)
+            const gallery = e.target.closest('.img-gallery');
+            
+            if (gallery) {
+                // 获取该图集下所有的图片地址
+                const allImgs = Array.from(gallery.querySelectorAll('img'));
+                currentImageList = allImgs.map(img => img.src);
+                currentIndex = currentImageList.indexOf(e.target.src);
+            } else {
+                // 如果不是图集，就只有这一张图
+                currentImageList = [e.target.src];
+                currentIndex = 0;
+            }
+            
+            openImagePreview();
         }
     });
-    
-    // 2. 打开预览函数
-    function openImagePreview(src) {
+
+    function openImagePreview() {
         const modal = document.getElementById('imagePreviewModal');
-        const fullImg = document.getElementById('previewImage');
-        
-        fullImg.src = src; // 设置大图地址
-        modal.style.display = 'flex'; // 显示容器
-        
-        // 禁止页面滚动（防止看大图时背景还在滚）
+        updateModalImage();
+        modal.style.display = 'flex';
         document.body.style.overflow = 'hidden';
     }
     
-    // 3. 关闭预览函数
-    function closeImagePreview() {
-        const modal = document.getElementById('imagePreviewModal');
-        modal.style.display = 'none'; // 隐藏容器
+    function updateModalImage() {
+        const fullImg = document.getElementById('previewImage');
+        const counter = document.getElementById('modalCounter');
+        const prevBtn = document.getElementById('modalPrev');
+        const nextBtn = document.getElementById('modalNext');
+    
+        fullImg.src = currentImageList[currentIndex];
+        counter.innerText = `${currentIndex + 1} / ${currentImageList.length}`;
+    
+        // 如果只有一张图，隐藏导航按钮
+        if (currentImageList.length <= 1) {
+            prevBtn.style.display = 'none';
+            nextBtn.style.display = 'none';
+        } else {
+            prevBtn.style.display = 'block';
+            nextBtn.style.display = 'block';
+        }
+    }
+    
+    // 切换图片 (n 是 +1 或 -1)
+    function changeImage(n) {
+        currentIndex += n;
         
-        // 恢复页面滚动
+        // 循环切换逻辑
+        if (currentIndex >= currentImageList.length) currentIndex = 0;
+        if (currentIndex < 0) currentIndex = currentImageList.length - 1;
+        
+        updateModalImage();
+    }
+    
+    function closeImagePreview() {
+        document.getElementById('imagePreviewModal').style.display = 'none';
         document.body.style.overflow = 'auto';
     }
+    
+    // 增加键盘支持 (左右键翻页，ESC关闭)
+    document.addEventListener('keydown', function(e) {
+        const modal = document.getElementById('imagePreviewModal');
+        if (modal.style.display === 'flex') {
+            if (e.key === 'ArrowLeft') changeImage(-1);
+            if (e.key === 'ArrowRight') changeImage(1);
+            if (e.key === 'Escape') closeImagePreview();
+        }
+    });
 
     // Quill 图片上传处理函数
     function imageHandler() {
