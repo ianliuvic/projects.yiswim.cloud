@@ -2,6 +2,7 @@ const express = require('express');
 const path = require('path');
 const multer = require('multer');
 const fs = require('fs');
+const sharp = require('sharp');
 const app = express();
 
 // 1. 告诉 Express 我们要使用 EJS 作为模板引擎
@@ -147,20 +148,32 @@ const upload = multer({
 });
 
 // 图片上传接口
-app.post('/api/upload-image', upload.single('image'), (req, res) => {
-  if (!req.file) {
-    return res.status(400).json({ success: false, message: '没有文件' });
+app.post('/api/upload-image', upload.single('image'), async (req, res) => {
+  if (!req.file) return res.status(400).json({ success: false });
+
+  const filePath = req.file.path;
+  const optimizedName = `opt-${req.file.filename}`;
+  const optimizedPath = path.join(UPLOAD_DIR, optimizedName);
+
+  try {
+    // 使用 sharp 压缩图片：调整尺寸（如最大宽度1200px），转换为 webp (体积更小)
+    await sharp(filePath)
+      .resize(1200, null, { withoutEnlargement: true })
+      .webp({ quality: 80 }) 
+      .toFile(optimizedPath);
+
+    // 删除原大图（可选）
+    fs.unlinkSync(filePath);
+
+    res.json({
+      success: true,
+      url: `https://files.yiswim.cloud/uploads/${optimizedName}`
+    });
+  } catch (err) {
+    res.status(500).json({ success: false, message: "图片处理失败" });
   }
-
-  // 生成对外可访问的 URL，使用你的子域名
-  const fileName = req.file.filename;
-  const imageUrl = `https://files.yiswim.cloud/uploads/${fileName}`;
-
-  res.json({
-    success: true,
-    url: imageUrl
-  });
 });
+
 
 
 
