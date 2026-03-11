@@ -1190,17 +1190,15 @@
         if (!confirm("确认删除这条记录吗？此操作无法恢复。")) return;
 
         try {
-            // 构造发送给后端的 payload
-            // 这里附带了 action 字段为 delete_record，方便你在 n8n 中通过 Switch 节点分流
+            // 【关键修改】：后端接口校验了 newRecord 不能为空，所以用将要删除的数据作为 newRecord 占位
             const payload = {
                 projectId: PROJECT_ID,
                 stepId: stepId,
-                recordIndex: recordIndex,          // n8n 需要知道删除第几个元素
-                recordData: state.nodesData[stepId][recordIndex], // 把被删的内容传过去以防需要
+                recordIndex: recordIndex,
+                newRecord: state.nodesData[stepId][recordIndex], // 用原数据占位，防止报 400
                 action: "delete_record" 
             };
 
-            // 注意：这里你可以继续复用 /api/append-record 接口（只要后端透传到n8n即可），或者新建一个专用的删除接口
             const res = await fetch('/api/append-record', { 
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
@@ -1214,7 +1212,7 @@
                 state.nodesData[stepId].splice(recordIndex, 1);
                 renderTimeline();
             } else {
-                throw new Error("n8n 返回失败");
+                throw new Error(data.message || "n8n 返回失败");
             }
         } catch (e) {
             console.error("请求失败", e);
