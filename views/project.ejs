@@ -80,6 +80,23 @@
         .info-value { font-size: 15px; font-weight: 600; color: var(--gray-800); word-break: break-all; }
         .info-value.mono { font-family: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, Courier, monospace; font-size: 14px; color: var(--gray-500); }
         .info-value.highlight { color: var(--primary); }
+        
+        /* 针对包含 Badge 的日期项定制，确保移动端长日期合理换行 */
+        .info-value-date { 
+            display: flex; align-items: center; gap: 6px; flex-wrap: wrap; 
+            font-family: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, Courier, monospace; 
+            font-size: 14px; color: var(--gray-800); 
+        }
+
+        /* 天数标签样式 */
+        .badge {
+            padding: 2px 6px; border-radius: 4px; font-size: 12px; font-weight: 600; 
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            white-space: nowrap; line-height: 1.2;
+        }
+        .badge-safe { background: #dcfce7; color: #166534; border: 1px solid #bbf7d0; }
+        .badge-warning { background: #fef08a; color: #854d0e; border: 1px solid #fde047; }
+        .badge-danger { background: #fee2e2; color: #991b1b; border: 1px solid #fecaca; }
 
         /* 移动端优化：步骤条容器支持横向滚动，隐藏滚动条 */
         .stepper-container { 
@@ -208,7 +225,7 @@
             /* 其他完成按钮 */
             .next-step-container { justify-content: center; padding-right: 0; }
 
-            /* N8N 注入的内联 Flex 样式修复 (原有的手机端媒体查询) */
+            /* N8N 注入的内联 Flex 样式修复 */
             .timeline-html > div > div[style*="display: flex"] {
                 flex-direction: column !important;
                 align-items: center !important;
@@ -245,7 +262,7 @@
             background-color: rgba(0,0,0,0.95);
             justify-content: center;
             align-items: center;
-            user-select: none; /* 防止频繁点击选中文字 */
+            user-select: none;
         }
         
         .img-preview-modal img {
@@ -255,7 +272,6 @@
             transition: transform 0.2s;
         }
         
-        /* 预览层的导航箭头 */
         .modal-nav-btn {
             position: absolute;
             top: 50%;
@@ -274,7 +290,6 @@
         .modal-nav-btn.prev { left: 10px; }
         .modal-nav-btn.next { right: 10px; }
         
-        /* 图片计数器 */
         .modal-counter {
             position: absolute;
             bottom: 20px;
@@ -285,7 +300,6 @@
             border-radius: 20px;
         }
         
-        /* 隐藏移动端不必要的箭头或调整大小 */
         @media (max-width: 768px) {
             .modal-nav-btn { padding: 15px 10px; font-size: 30px; background: transparent; }
         }
@@ -310,7 +324,6 @@
         <img src="/logo.png" alt="Logo" class="brand-logo" onerror="this.src='data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdib3g9IjAgMCAxMDAgMTAwIj48cmVjdCB3aWR0aD0iMTAwIiBoZWlnaHQ9IjEwMCIgZmlsbD0iI2RkZCIvPjwvc3ZnPg=='" />
         <div class="brand-title" data-i18n="brand.title">项目跟踪系统</div>
         
-        <!-- 右上角中英切换按钮 -->
         <div class="lang-switch">
             <button class="lang-btn active" data-lang="zh">中文</button>
             <button class="lang-btn" data-lang="en">English</button>
@@ -325,6 +338,16 @@
         <div class="info-item">
             <span class="info-label" data-i18n="info.uuid">项目 ID (UUID)</span>
             <span class="info-value mono" id="displayUuid"><%= projectId %></span>
+        </div>
+        <!-- 下单日期 -->
+        <div class="info-item" id="orderDateContainer" style="display: none;">
+            <span class="info-label" data-i18n="info.order_date">下单日期</span>
+            <span class="info-value-date" id="displayOrderDate">加载中...</span>
+        </div>
+        <!-- 交付日期 -->
+        <div class="info-item" id="deliveryDateContainer" style="display: none;">
+            <span class="info-label" data-i18n="info.delivery_date">交付日期</span>
+            <span class="info-value-date" id="displayDeliveryDate">加载中...</span>
         </div>
         <div class="info-item">
             <span class="info-label" data-i18n="info.status">当前状态</span>
@@ -366,17 +389,11 @@
 
 </div> 
 
-<!-- 用于查看大图的容器 -->
 <div id="imagePreviewModal" class="img-preview-modal">
-    <!-- 点击背景关闭，但要排除点击按钮和图片本身 -->
     <div id="modalBg" style="position:absolute; width:100%; height:100%; z-index:20000;" onclick="closeImagePreview()"></div>
-    
     <button class="modal-nav-btn prev" id="modalPrev" onclick="changeImage(-1)">&#10094;</button>
-    
     <img id="previewImage" src="" alt="预览图" style="position:relative; z-index:20001;">
-    
     <button class="modal-nav-btn next" id="modalNext" onclick="changeImage(1)">&#10095;</button>
-    
     <div class="modal-counter" id="modalCounter" style="z-index:20001;">1 / 1</div>
 </div>
 
@@ -392,6 +409,8 @@
                 "brand.title": "项目跟踪系统",
                 "info.type": "项目类型",
                 "info.uuid": "项目 ID (UUID)",
+                "info.order_date": "下单日期",
+                "info.delivery_date": "交付日期",
                 "info.status": "当前状态",
                 "info.role": "当前身份",
                 "role.visitor": "访客",
@@ -429,7 +448,10 @@
                 "step.完成": "完成",
                 "alert.file_limit": "文件大小不能超过 20MB",
                 "alert.file_uploading": "[上传中...] ",
-                "alert.file_fail": "文件上传失败："
+                "alert.file_fail": "文件上传失败：",
+                "days.remaining": "剩 {{count}} 天",
+                "days.overdue": "超期 {{count}} 天",
+                "days.today": "今日交付"
             }
         },
         en: {
@@ -438,6 +460,8 @@
                 "brand.title": "Project Tracking System",
                 "info.type": "Project Type",
                 "info.uuid": "Project ID (UUID)",
+                "info.order_date": "Order Date",
+                "info.delivery_date": "Delivery Date",
                 "info.status": "Current Status",
                 "info.role": "Current Role",
                 "role.visitor": "Visitor",
@@ -475,7 +499,10 @@
                 "step.完成": "Completed",
                 "alert.file_limit": "File size cannot exceed 20MB",
                 "alert.file_uploading": "[Uploading...] ",
-                "alert.file_fail": "File upload failed: "
+                "alert.file_fail": "File upload failed: ",
+                "days.remaining": "{{count}}d left",
+                "days.overdue": "Overdue {{count}}d",
+                "days.today": "Due Today"
             }
         }
     };
@@ -492,6 +519,74 @@
 
     const STORAGE_KEY = `tracker_token_${PROJECT_ID}`;
     const LANG_STORAGE_KEY = 'lang';
+
+    // ====================== 渲染日期状态 ======================
+    function renderProjectDates() {
+        const orderDateContainer = document.getElementById('orderDateContainer');
+        const deliveryDateContainer = document.getElementById('deliveryDateContainer');
+        const projectData = BACKEND_DATA.project_data || {};
+
+        if (projectData.orders && projectData.orders.length > 0) {
+            const order = projectData.orders[0];
+
+            const formatDateStr = (isoString) => {
+                if (!isoString) return '';
+                const d = new Date(isoString);
+                if (isNaN(d.getTime())) return '';
+                return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+            };
+
+            // 渲染下单日期
+            if (order.order_date && orderDateContainer) {
+                const oDateStr = formatDateStr(order.order_date);
+                if (oDateStr) {
+                    document.getElementById('displayOrderDate').innerText = oDateStr;
+                    orderDateContainer.style.display = 'flex';
+                }
+            }
+
+            // 渲染交付日期及其标签（仅限 write / admin 权限）
+            if (deliveryDateContainer) {
+                if (order.delivery_date && (BACKEND_DATA.role === 'write' || BACKEND_DATA.role === 'admin')) {
+                    const dDateStr = formatDateStr(order.delivery_date);
+                    if (dDateStr) {
+                        const target = new Date(order.delivery_date);
+                        target.setHours(0, 0, 0, 0);
+                        const now = new Date();
+                        now.setHours(0, 0, 0, 0);
+                        const diffDays = Math.ceil((target - now) / (1000 * 60 * 60 * 24));
+                        
+                        let badgeClass = '';
+                        let badgeText = '';
+                        
+                        if (diffDays > 3) {
+                            badgeClass = 'badge-safe';
+                            badgeText = i18next.t('days.remaining').replace('{{count}}', diffDays);
+                        } else if (diffDays > 0) {
+                            badgeClass = 'badge-warning';
+                            badgeText = i18next.t('days.remaining').replace('{{count}}', diffDays);
+                        } else if (diffDays === 0) {
+                            badgeClass = 'badge-warning';
+                            badgeText = i18next.t('days.today');
+                        } else {
+                            badgeClass = 'badge-danger';
+                            badgeText = i18next.t('days.overdue').replace('{{count}}', Math.abs(diffDays));
+                        }
+
+                        document.getElementById('displayDeliveryDate').innerHTML = `${dDateStr} <span class="badge ${badgeClass}">${badgeText}</span>`;
+                        deliveryDateContainer.style.display = 'flex';
+                    }
+                } else {
+                    // 如果无权限访问交付日期（如 role 为 read），强行清除 DOM 结构，彻底防止从 F12 Elements 页面泄露
+                    deliveryDateContainer.innerHTML = '';
+                    deliveryDateContainer.style.display = 'none';
+                }
+            }
+        } else {
+            if (orderDateContainer) orderDateContainer.style.display = 'none';
+            if (deliveryDateContainer) deliveryDateContainer.style.display = 'none';
+        }
+    }
 
     // ====================== i18next 初始化 ======================
     function initI18next() {
@@ -570,6 +665,9 @@
                 else if (BACKEND_DATA.role === 'write') roleText = i18next.t('role.collaborator');
                 document.getElementById('displayRole').innerText = roleText;
 
+                // 渲染时间与标签
+                renderProjectDates();
+
                 const rawNodes = projectData.nodesData || BACKEND_DATA.nodesData || {};
                 const normalizedNodes = {};
 
@@ -581,19 +679,19 @@
                             html: item.html || ''
                         }));
                     } else if (typeof val === 'object' && val !== null) {
-                        let arr = [];
+                        let arr =[];
                         if (val.text) arr.push({ time: '订单详情', html: val.text });
                         if (val.logs && Array.isArray(val.logs)) {
                             val.logs.forEach(log => arr.push({ time: '系统日志', html: log }));
                         }
                         normalizedNodes[key] = arr;
                     } else {
-                        normalizedNodes[key] = [];
+                        normalizedNodes[key] =[];
                     }
                 });
 
                 stepsId.forEach(step => {
-                    if (!normalizedNodes[step]) normalizedNodes[step] = [];
+                    if (!normalizedNodes[step]) normalizedNodes[step] =[];
                 });
 
                 const realStatusIndex = projectData.status ? (statusMap[projectData.status] || 0) : 0;
@@ -644,6 +742,7 @@
                     updateAllContent();
                     highlightActiveLangButton();
                     if (state.nodesData) {
+                        renderProjectDates(); // 中英切换时也要触发重新生成标签
                         renderStepper();
                         renderTimeline();
                     }
@@ -686,11 +785,8 @@
                     modules: {
                         toolbar: {
                             container: [
-                                [{ 'header': [1, 2, false] }],
-                                ['bold', 'italic', 'underline', 'strike'],
-                                [{ 'list': 'ordered' }, { 'list': 'bullet' }],
-                                ['blockquote', 'code-block'],
-                                ['image', 'attachment', 'link', 'video'],
+                                [{ 'header': [1, 2, false] }],['bold', 'italic', 'underline', 'strike'],[{ 'list': 'ordered' }, { 'list': 'bullet' }],
+                                ['blockquote', 'code-block'],['image', 'attachment', 'link', 'video'],
                                 ['clean']
                             ],
                             handlers: {
@@ -707,9 +803,7 @@
             // 引入 Delta (用于剪贴板处理)
             const Delta = Quill.import('delta');
 
-            // ====================== 终极拦截：彻底封杀 Base64 ======================
-            
-            // 1. 拦截直接粘贴图片文件 (如 QQ/微信截图)
+            // 1. 拦截直接粘贴图片文件
             quill.root.addEventListener('paste', (e) => {
                 if(e.clipboardData && e.clipboardData.items) {
                     let hasImage = false;
@@ -722,12 +816,12 @@
                     });
                     if (hasImage) {
                         e.preventDefault(); 
-                        e.stopPropagation(); // 关键：阻止事件冒泡，防止 Quill 内部接管
+                        e.stopPropagation();
                     }
                 }
-            }, true); // 关键：加了 true，使用捕获阶段，抢在 Quill 触发前拦截
+            }, true);
 
-            // 2. 拦截鼠标直接拖拽图片文件到编辑器
+            // 2. 拦截鼠标直接拖拽图片文件
             quill.root.addEventListener('drop', (e) => {
                 if (e.dataTransfer && e.dataTransfer.files) {
                     let hasImage = false;
@@ -739,36 +833,28 @@
                     });
                     if (hasImage) {
                         e.preventDefault(); 
-                        e.stopPropagation(); // 关键：阻止事件冒泡
+                        e.stopPropagation();
                     }
                 }
-            }, true); // 关键：加了 true
+            }, true);
 
-            // 3. 拦截复制网页/文档带过来的 Base64 格式图片 (富文本 HTML 粘贴)
+            // 3. 拦截复制网页带过来的 Base64 格式图片
             quill.clipboard.addMatcher('IMG', (node, delta) => {
                 const src = node.getAttribute('src');
-                // 如果发现图片链接是 base64 开头的
                 if (src && src.startsWith('data:image/')) {
-                    // 将 base64 转换回 File 对象，然后走我们的正常上传逻辑
                     fetch(src)
                         .then(res => res.blob())
                         .then(blob => {
-                            // 提取扩展名，默认为 png
                             let ext = 'png';
                             const match = src.match(/^data:image\/(\w+);base64,/);
                             if (match) ext = match[1];
-                            
                             const file = new File([blob], `pasted-image.${ext}`, { type: blob.type });
                             uploadAndInsertImage(file);
                         });
-                    
-                    // 拦截原本的 Base64 插入：返回空的 Delta 对象，直接丢弃这个长字符串
                     return new Delta();
                 }
-                // 如果是正常的 http/https 链接图片，放行
                 return delta;
             });
-            // ===================================================================
             }
         }
         renderStepper();
@@ -776,25 +862,20 @@
         updateAllContent();
     }
 
-    let currentImageList = []; // 存储当前预览组的所有图片URL
-    let currentIndex = 0;      // 当前显示的索引
+    let currentImageList =[];
+    let currentIndex = 0;
     
     document.getElementById('timelineContainer').addEventListener('click', function(e) {
         if (e.target.tagName === 'IMG') {
-            // 1. 查找这张图是否属于一个图集 (n8n 生成的 .img-gallery)
             const gallery = e.target.closest('.img-gallery');
-            
             if (gallery) {
-                // 获取该图集下所有的图片地址
                 const allImgs = Array.from(gallery.querySelectorAll('img'));
                 currentImageList = allImgs.map(img => img.src);
                 currentIndex = currentImageList.indexOf(e.target.src);
             } else {
-                // 如果不是图集，就只有这一张图
                 currentImageList = [e.target.src];
                 currentIndex = 0;
             }
-            
             openImagePreview();
         }
     });
@@ -815,7 +896,6 @@
         fullImg.src = currentImageList[currentIndex];
         counter.innerText = `${currentIndex + 1} / ${currentImageList.length}`;
     
-        // 如果只有一张图，隐藏导航按钮
         if (currentImageList.length <= 1) {
             prevBtn.style.display = 'none';
             nextBtn.style.display = 'none';
@@ -825,14 +905,10 @@
         }
     }
     
-    // 切换图片 (n 是 +1 或 -1)
     function changeImage(n) {
         currentIndex += n;
-        
-        // 循环切换逻辑
         if (currentIndex >= currentImageList.length) currentIndex = 0;
         if (currentIndex < 0) currentIndex = currentImageList.length - 1;
-        
         updateModalImage();
     }
     
@@ -841,7 +917,6 @@
         document.body.style.overflow = 'auto';
     }
     
-    // 增加键盘支持 (左右键翻页，ESC关闭)
     document.addEventListener('keydown', function(e) {
         const modal = document.getElementById('imagePreviewModal');
         if (modal.style.display === 'flex') {
@@ -851,8 +926,7 @@
         }
     });
 
-    // ====================== 通用图片上传逻辑 ======================
-    // 处理具体的图片文件上传并插入到编辑器
+    // ====================== 图片与附件上传逻辑 ======================
     async function uploadAndInsertImage(file, index = null) {
         if (file.size > 5 * 1024 * 1024) {
             alert('图片大小不能超过 5MB');
@@ -862,14 +936,12 @@
         const formData = new FormData();
         formData.append('image', file);
 
-        // 为了防止多次粘贴时光标丢失，先获取当前光标位置
         let insertIndex = index;
         if (insertIndex === null) {
             const range = quill.getSelection(true);
             insertIndex = range ? range.index : quill.getLength();
         }
 
-        // 插入一个临时的“上传中”提示（可选体验优化）
         quill.insertText(insertIndex, '[图片上传中...]', { color: '#999' });
 
         try {
@@ -879,11 +951,9 @@
             });
             const data = await response.json();
 
-            // 删除“上传中”提示
             quill.deleteText(insertIndex, '[图片上传中...]'.length);
 
             if (data.success && data.url) {
-                // 插入真实的图片外链
                 quill.insertEmbed(insertIndex, 'image', data.url);
                 quill.setSelection(insertIndex + 1);
             } else {
@@ -896,7 +966,6 @@
         }
     }
 
-    // Quill 工具栏图片按钮处理函数
     function imageHandler() {
         const input = document.createElement('input');
         input.setAttribute('type', 'file');
@@ -911,18 +980,15 @@
         };
     }
 
-    // Quill 附件上传处理函数
     function fileHandler() {
         const input = document.createElement('input');
         input.setAttribute('type', 'file');
-        // 不限制类型，允许所有文件
         input.click();
 
         input.onchange = async () => {
             const file = input.files[0];
             if (!file) return;
 
-            // 限制文件大小（例如 20MB）
             if (file.size > 20 * 1024 * 1024) {
                 alert(i18next.t('alert.file_limit') || '文件大小不能超过 20MB');
                 return;
@@ -931,32 +997,26 @@
             const range = quill.getSelection(true);
             const uploadingText = (i18next.t('alert.file_uploading') || '[上传中...] ') + file.name;
             
-            // 先在编辑器里插入“[上传中...] 文件名”占位符
             quill.insertText(range.index, uploadingText, { color: '#999' });
 
             const formData = new FormData();
-            formData.append('file', file); // 这里的字段名 'file' 需根据你后端的接收要求调整
+            formData.append('file', file); 
 
             try {
-                // 请求后端的上传附件接口
                 const response = await fetch('/api/upload-file', {
                     method: 'POST',
                     body: formData
                 });
 
                 const data = await response.json();
-
-                // 删除刚才的占位符文本
                 quill.deleteText(range.index, uploadingText.length);
 
                 if (data.success && data.url) {
-                    // 插入带 📎 图标的文件名，并转为超链接
                     const insertText = `📎 ${file.name}`;
                     quill.insertText(range.index, insertText);
                     quill.setSelection(range.index, insertText.length);
-                    quill.format('link', data.url); // 设置超链接
+                    quill.format('link', data.url); 
                     
-                    // 将光标移到链接后面，并清除链接格式，方便继续输入文字
                     quill.setSelection(range.index + insertText.length);
                     quill.format('link', false);
                     quill.insertText(range.index + insertText.length, ' '); 
@@ -965,7 +1025,6 @@
                 }
             } catch (error) {
                 console.error('文件上传出错', error);
-                // 发生异常时也删除占位符
                 quill.deleteText(range.index, uploadingText.length);
                 alert('上传失败，请检查网络或稍后重试');
             }
@@ -998,7 +1057,6 @@
                     state.activeStepIndex = index; 
                     renderStepper(); 
                     renderTimeline(); 
-                    // 移动端点击自动滚动居中
                     if (window.innerWidth <= 768) {
                         node.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
                     }
@@ -1027,7 +1085,7 @@
 
     function renderTimeline() {
         const stepId = stepsId[state.activeStepIndex];
-        let records = state.nodesData[stepId] || [];
+        let records = state.nodesData[stepId] ||[];
         
         if (stepId === 'requirement') {
             const creationRecords = records.filter(r => r.time && r.time.includes('项目创建'));
@@ -1065,7 +1123,7 @@
         }).join('');
     }
 
-    // ====================== 保存按钮 ======================
+    // ====================== 保存与提交 ======================
     document.getElementById('submitBtn').addEventListener('click', async () => {
         if (BACKEND_DATA.role === 'read') return;
         if (!quill) return;
@@ -1082,7 +1140,7 @@
         
         const newRecord = { time, html };
 
-        if (!state.nodesData[stepId]) state.nodesData[stepId] = [];
+        if (!state.nodesData[stepId]) state.nodesData[stepId] =[];
         state.nodesData[stepId].push(newRecord);
         quill.setContents([{ insert: '\n' }]);
         renderTimeline();
@@ -1122,7 +1180,6 @@
         }
     });
 
-    // ====================== 【核心修改】此阶段已完成按钮 ======================
     document.getElementById('nextStepBtn').addEventListener('click', async () => {
         if (BACKEND_DATA.role !== 'write' && BACKEND_DATA.role !== 'admin') return;
         if (state.activeStepIndex !== state.maxStepIndex) return;
@@ -1169,7 +1226,6 @@
         }
     });
 
-    // ====================== 动态年份 ======================
     document.getElementById('currentYear').innerText = new Date().getFullYear();
 </script>
 </body>
