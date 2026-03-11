@@ -303,6 +303,26 @@
         @media (max-width: 768px) {
             .modal-nav-btn { padding: 15px 10px; font-size: 30px; background: transparent; }
         }
+
+        /* 历史记录删除按钮 */
+        .btn-delete-record {
+            position: absolute;
+            top: 0;
+            right: 0;
+            color: var(--gray-400);
+            background: none;
+            border: none;
+            font-size: 13px;
+            cursor: pointer;
+            padding: 4px 8px;
+            border-radius: 4px;
+            transition: all 0.2s;
+            z-index: 10;
+        }
+        .btn-delete-record:hover {
+            color: #dc2626;
+            background: #fee2e2;
+        }
     </style>
 </head>
 <body>
@@ -1134,18 +1154,73 @@
                 extraClass = 'starting-record';
             }
 
+            // --- 新增：判断是否允许删除 ---
+            // 权限必须是 admin，且排除系统级别的记录（项目创建、订单详情、系统日志以及完成阶段的系统通知）
+            const isAdmin = BACKEND_DATA.role === 'admin';
+            const isSystemRecord = displayTime.includes('项目创建') || 
+                                   displayTime.includes('订单详情') || 
+                                   displayTime.includes('系统日志') || 
+                                   (item.html && item.html.includes('【系统通知】'));
+            const canDelete = isAdmin && !isSystemRecord;
+            
+            // 获取该记录在原数组中的真实索引，便于准确删除
+            const originalIndex = state.nodesData[stepId].indexOf(item);
+            
+            // 渲染删除按钮
+            const deleteBtnHtml = canDelete ? 
+                `<button class="btn-delete-record" onclick="deleteRecord('${stepId}', ${originalIndex})">删除</button>` : '';
+            // -----------------------------
+
             const optimizedHtml = (item.html || '').replace(/<img /g, '<img loading="lazy" ');
 
             return `
             <div class="timeline-item ${extraClass}">
                 <div class="timeline-divider"><div class="timeline-dot"></div></div>
-                <div class="timeline-content">
+                <div class="timeline-content" style="position: relative;">
+                    ${deleteBtnHtml}
                     <div class="timeline-time">${displayTime}</div>
                     <div class="timeline-html">${item.html || ''}</div>
                 </div>
             </div>`;
         }).join('');
     }
+
+    // ====================== 删除历史记录逻辑 ======================
+    window.deleteRecord = async function(stepId, recordIndex) {
+        if (!confirm("确认删除这条记录吗？此操作无法恢复。")) return;
+
+        try {
+            // 构造发送给后端的 payload
+            // 这里附带了 action 字段为 delete_record，方便你在 n8n 中通过 Switch 节点分流
+            const payload = {
+                projectId: PROJECT_ID,
+                stepId: stepId,
+                recordIndex: recordIndex,          // n8n 需要知道删除第几个元素
+                recordData: state.nodesData[stepId][recordIndex], // 把被删的内容传过去以防需要
+                action: "delete_record" 
+            };
+
+            // 注意：这里你可以继续复用 /api/append-record 接口（只要后端透传到n8n即可），或者新建一个专用的删除接口
+            const res = await fetch('/api/append-record', { 
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            });
+
+            const data = await res.json();
+            
+            if (data.success) {
+                // 后端/n8n 处理成功后，前端从数组中移除该项并重新渲染
+                state.nodesData[stepId].splice(recordIndex, 1);
+                renderTimeline();
+            } else {
+                throw new Error("n8n 返回失败");
+            }
+        } catch (e) {
+            console.error("请求失败", e);
+            alert("删除失败，请稍后重试");
+        }
+    };
 
     // ====================== 保存与提交 ======================
     document.getElementById('submitBtn').addEventListener('click', async () => {
