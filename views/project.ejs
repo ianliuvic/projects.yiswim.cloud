@@ -704,6 +704,44 @@
                         }
                     }
                 });
+
+                
+                // ====================== 新增：拦截粘贴和拖拽图片 ======================
+                // 1. 拦截 Ctrl+V 粘贴
+                quill.root.addEventListener('paste', (e) => {
+                    if(e.clipboardData && e.clipboardData.items) {
+                        let hasImage = false;
+                        Array.from(e.clipboardData.items).forEach(item => {
+                            if (item.type.indexOf('image/') === 0) {
+                                hasImage = true;
+                                const file = item.getAsFile();
+                                if (file) uploadAndInsertImage(file);
+                            }
+                        });
+                        // 如果剪贴板里有图片，阻止默认的粘贴行为(阻止Base64转换)
+                        if (hasImage) {
+                            e.preventDefault(); 
+                        }
+                    }
+                });
+
+                // 2. 拦截文件拖拽到编辑器
+                quill.root.addEventListener('drop', (e) => {
+                    if (e.dataTransfer && e.dataTransfer.files) {
+                        let hasImage = false;
+                        Array.from(e.dataTransfer.files).forEach(file => {
+                            if (file.type.indexOf('image/') === 0) {
+                                hasImage = true;
+                                uploadAndInsertImage(file);
+                            }
+                        });
+                        // 如果拖进来的是图片，阻止浏览器默认打开图片的动作及 Quill 的 Base64 转换
+                        if (hasImage) {
+                            e.preventDefault(); 
+                        }
+                    }
+                });
+                // ===================================================================
             }
         }
         renderStepper();
@@ -786,43 +824,62 @@
         }
     });
 
-    // Quill 图片上传处理函数
+    // ====================== 通用图片上传逻辑 ======================
+    // 处理具体的图片文件上传并插入到编辑器
+    async function uploadAndInsertImage(file, index = null) {
+        if (file.size > 5 * 1024 * 1024) {
+            alert('图片大小不能超过 5MB');
+            return;
+        }
+
+        const formData = new FormData();
+        formData.append('image', file);
+
+        // 为了防止多次粘贴时光标丢失，先获取当前光标位置
+        let insertIndex = index;
+        if (insertIndex === null) {
+            const range = quill.getSelection(true);
+            insertIndex = range ? range.index : quill.getLength();
+        }
+
+        // 插入一个临时的“上传中”提示（可选体验优化）
+        quill.insertText(insertIndex, '[图片上传中...]', { color: '#999' });
+
+        try {
+            const response = await fetch('/api/upload-image', {
+                method: 'POST',
+                body: formData
+            });
+            const data = await response.json();
+
+            // 删除“上传中”提示
+            quill.deleteText(insertIndex, '[图片上传中...]'.length);
+
+            if (data.success && data.url) {
+                // 插入真实的图片外链
+                quill.insertEmbed(insertIndex, 'image', data.url);
+                quill.setSelection(insertIndex + 1);
+            } else {
+                alert('图片上传失败：' + (data.message || '未知错误'));
+            }
+        } catch (error) {
+            console.error('图片上传出错', error);
+            quill.deleteText(insertIndex, '[图片上传中...]'.length);
+            alert('上传失败，请检查网络或稍后重试');
+        }
+    }
+
+    // Quill 工具栏图片按钮处理函数
     function imageHandler() {
         const input = document.createElement('input');
         input.setAttribute('type', 'file');
         input.setAttribute('accept', 'image/*');
         input.click();
 
-        input.onchange = async () => {
+        input.onchange = () => {
             const file = input.files[0];
-            if (!file) return;
-
-            if (file.size > 5 * 1024 * 1024) {
-                alert('图片大小不能超过 5MB');
-                return;
-            }
-
-            const formData = new FormData();
-            formData.append('image', file);
-
-            try {
-                const response = await fetch('/api/upload-image', {
-                    method: 'POST',
-                    body: formData
-                });
-
-                const data = await response.json();
-
-                if (data.success && data.url) {
-                    const range = quill.getSelection(true);
-                    quill.insertEmbed(range.index, 'image', data.url);
-                    quill.setSelection(range.index + 1);
-                } else {
-                    alert('图片上传失败：' + (data.message || '未知错误'));
-                }
-            } catch (error) {
-                console.error('图片上传出错', error);
-                alert('上传失败，请检查网络或稍后重试');
+            if (file) {
+                uploadAndInsertImage(file);
             }
         };
     }
