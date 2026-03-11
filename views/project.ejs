@@ -704,44 +704,71 @@
                         }
                     }
                 });
+            // 引入 Delta (用于剪贴板处理)
+            const Delta = Quill.import('delta');
 
-                
-                // ====================== 新增：拦截粘贴和拖拽图片 ======================
-                // 1. 拦截 Ctrl+V 粘贴
-                quill.root.addEventListener('paste', (e) => {
-                    if(e.clipboardData && e.clipboardData.items) {
-                        let hasImage = false;
-                        Array.from(e.clipboardData.items).forEach(item => {
-                            if (item.type.indexOf('image/') === 0) {
-                                hasImage = true;
-                                const file = item.getAsFile();
-                                if (file) uploadAndInsertImage(file);
-                            }
-                        });
-                        // 如果剪贴板里有图片，阻止默认的粘贴行为(阻止Base64转换)
-                        if (hasImage) {
-                            e.preventDefault(); 
+            // ====================== 终极拦截：彻底封杀 Base64 ======================
+            
+            // 1. 拦截直接粘贴图片文件 (如 QQ/微信截图)
+            quill.root.addEventListener('paste', (e) => {
+                if(e.clipboardData && e.clipboardData.items) {
+                    let hasImage = false;
+                    Array.from(e.clipboardData.items).forEach(item => {
+                        if (item.type.indexOf('image/') === 0) {
+                            hasImage = true;
+                            const file = item.getAsFile();
+                            if (file) uploadAndInsertImage(file);
                         }
+                    });
+                    if (hasImage) {
+                        e.preventDefault(); 
+                        e.stopPropagation(); // 关键：阻止事件冒泡，防止 Quill 内部接管
                     }
-                });
+                }
+            }, true); // 关键：加了 true，使用捕获阶段，抢在 Quill 触发前拦截
 
-                // 2. 拦截文件拖拽到编辑器
-                quill.root.addEventListener('drop', (e) => {
-                    if (e.dataTransfer && e.dataTransfer.files) {
-                        let hasImage = false;
-                        Array.from(e.dataTransfer.files).forEach(file => {
-                            if (file.type.indexOf('image/') === 0) {
-                                hasImage = true;
-                                uploadAndInsertImage(file);
-                            }
-                        });
-                        // 如果拖进来的是图片，阻止浏览器默认打开图片的动作及 Quill 的 Base64 转换
-                        if (hasImage) {
-                            e.preventDefault(); 
+            // 2. 拦截鼠标直接拖拽图片文件到编辑器
+            quill.root.addEventListener('drop', (e) => {
+                if (e.dataTransfer && e.dataTransfer.files) {
+                    let hasImage = false;
+                    Array.from(e.dataTransfer.files).forEach(file => {
+                        if (file.type.indexOf('image/') === 0) {
+                            hasImage = true;
+                            uploadAndInsertImage(file);
                         }
+                    });
+                    if (hasImage) {
+                        e.preventDefault(); 
+                        e.stopPropagation(); // 关键：阻止事件冒泡
                     }
-                });
-                // ===================================================================
+                }
+            }, true); // 关键：加了 true
+
+            // 3. 拦截复制网页/文档带过来的 Base64 格式图片 (富文本 HTML 粘贴)
+            quill.clipboard.addMatcher('IMG', (node, delta) => {
+                const src = node.getAttribute('src');
+                // 如果发现图片链接是 base64 开头的
+                if (src && src.startsWith('data:image/')) {
+                    // 将 base64 转换回 File 对象，然后走我们的正常上传逻辑
+                    fetch(src)
+                        .then(res => res.blob())
+                        .then(blob => {
+                            // 提取扩展名，默认为 png
+                            let ext = 'png';
+                            const match = src.match(/^data:image\/(\w+);base64,/);
+                            if (match) ext = match[1];
+                            
+                            const file = new File([blob], `pasted-image.${ext}`, { type: blob.type });
+                            uploadAndInsertImage(file);
+                        });
+                    
+                    // 拦截原本的 Base64 插入：返回空的 Delta 对象，直接丢弃这个长字符串
+                    return new Delta();
+                }
+                // 如果是正常的 http/https 链接图片，放行
+                return delta;
+            });
+            // ===================================================================
             }
         }
         renderStepper();
