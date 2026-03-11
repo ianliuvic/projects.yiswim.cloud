@@ -26,7 +26,7 @@ app.get('/', (req, res) => {
 // 【API1】处理用户提交数据的接口（保持不变）
 // 【API】增量保存单条记录（推荐新名称）
 app.post('/api/append-record', async (req, res) => {
-    const { projectId, stepId, newRecord, action } = req.body;
+    const { projectId, stepId, newRecord, action, recordIndex } = req.body;
     
     if (!projectId || !stepId || !newRecord) {
         return res.status(400).json({ success: false, message: "缺少必要参数" });
@@ -41,7 +41,8 @@ app.post('/api/append-record', async (req, res) => {
                 projectId,
                 stepId,
                 newRecord,
-                action
+                action,
+                recordIndex
             })
         });
 
@@ -219,4 +220,5 @@ app.post('/api/upload-file', uploadFile.single('file'), (req, res) => {
 });
 
 // ==========================================
+
 
