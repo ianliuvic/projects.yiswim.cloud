@@ -527,30 +527,53 @@
         const projectData = BACKEND_DATA.project_data || {};
 
         if (projectData.orders && projectData.orders.length > 0) {
-            const order = projectData.orders[0];
+            
+            // 1. 新增：遍历找出最早的下单日期和最晚的交付日期
+            let earliestOrderDate = null;
+            let latestDeliveryDate = null;
 
-            const formatDateStr = (isoString) => {
-                if (!isoString) return '';
-                const d = new Date(isoString);
-                if (isNaN(d.getTime())) return '';
+            projectData.orders.forEach(order => {
+                // 比较找出最早的下单时间
+                if (order.order_date) {
+                    const oDate = new Date(order.order_date);
+                    if (!isNaN(oDate.getTime())) {
+                        if (!earliestOrderDate || oDate < earliestOrderDate) {
+                            earliestOrderDate = oDate;
+                        }
+                    }
+                }
+                // 比较找出最晚的交付时间
+                if (order.delivery_date) {
+                    const dDate = new Date(order.delivery_date);
+                    if (!isNaN(dDate.getTime())) {
+                        if (!latestDeliveryDate || dDate > latestDeliveryDate) {
+                            latestDeliveryDate = dDate;
+                        }
+                    }
+                }
+            });
+
+            // 格式化 Date 对象为 YYYY-MM-DD
+            const formatDateStr = (d) => {
+                if (!d) return '';
                 return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
             };
 
-            // 渲染下单日期
-            if (order.order_date && orderDateContainer) {
-                const oDateStr = formatDateStr(order.order_date);
+            // 2. 渲染最早的下单日期
+            if (earliestOrderDate && orderDateContainer) {
+                const oDateStr = formatDateStr(earliestOrderDate);
                 if (oDateStr) {
                     document.getElementById('displayOrderDate').innerText = oDateStr;
                     orderDateContainer.style.display = 'flex';
                 }
             }
 
-            // 渲染交付日期及其标签（仅限 write / admin 权限）
+            // 3. 渲染最晚的交付日期及其标签（仅限 write / admin 权限）
             if (deliveryDateContainer) {
-                if (order.delivery_date && (BACKEND_DATA.role === 'write' || BACKEND_DATA.role === 'admin')) {
-                    const dDateStr = formatDateStr(order.delivery_date);
+                if (latestDeliveryDate && (BACKEND_DATA.role === 'write' || BACKEND_DATA.role === 'admin')) {
+                    const dDateStr = formatDateStr(latestDeliveryDate);
                     if (dDateStr) {
-                        const target = new Date(order.delivery_date);
+                        const target = new Date(latestDeliveryDate);
                         target.setHours(0, 0, 0, 0);
                         const now = new Date();
                         now.setHours(0, 0, 0, 0);
@@ -577,12 +600,13 @@
                         deliveryDateContainer.style.display = 'flex';
                     }
                 } else {
-                    // 如果无权限访问交付日期（如 role 为 read），强行清除 DOM 结构，彻底防止从 F12 Elements 页面泄露
+                    // 如果无权限访问或没有交付日期，强行清除 DOM 结构
                     deliveryDateContainer.innerHTML = '';
                     deliveryDateContainer.style.display = 'none';
                 }
             }
         } else {
+            // 如果压根没有任何订单数据
             if (orderDateContainer) orderDateContainer.style.display = 'none';
             if (deliveryDateContainer) deliveryDateContainer.style.display = 'none';
         }
