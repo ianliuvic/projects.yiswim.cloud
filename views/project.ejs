@@ -341,7 +341,9 @@
 <div class="container" id="appContainer">
     
     <div class="brand-header">
-        <img src="/logo.png" alt="Logo" class="brand-logo" onerror="this.src='data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdib3g9IjAgMCAxMDAgMTAwIj48cmVjdCB3aWR0aD0iMTAwIiBoZWlnaHQ9IjEwMCIgZmlsbD0iI2RkZCIvPjwvc3ZnPg=='" />
+        <% if (role !== 'supplier') { %>
+            <img src="/logo.png" alt="Logo" class="brand-logo" onerror="this.src='data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdib3g9IjAgMCAxMDAgMTAwIj48cmVjdCB3aWR0aD0iMTAwIiBoZWlnaHQ9IjEwMCIgZmlsbD0iI2RkZCIvPjwvc3ZnPg=='" />
+        <% } %>        
         <div class="brand-title" data-i18n="brand.title">项目跟踪系统</div>
         
         <div class="lang-switch">
@@ -422,6 +424,7 @@
 
 <script>
     // ====================== i18next 多语言配置 ======================
+    const USER_ROLE = '<%= role %>'; // 获取后端传来的角色
     const i18nResources = {
         zh: {
             translation: {
@@ -636,6 +639,17 @@
     function initI18next() {
         const savedLang = localStorage.getItem(LANG_STORAGE_KEY) || 'zh';
         
+        // --- 新增：针对供应商角色动态修改品牌文字 ---
+        if (USER_ROLE === 'supplier') {
+            // 修改中文
+            i18nResources.zh.translation["title"] = "项目跟踪 - 伊之安科技";
+            i18nResources.zh.translation["footer.company"] = "伊之安科技 (Yisian Technology)";
+            
+            // 修改英文
+            i18nResources.en.translation["title"] = "Project Tracker - Yisian Technology";
+            i18nResources.en.translation["footer.company"] = "Yisian Technology";
+        }
+    
         i18next.init({
             lng: savedLang,
             resources: i18nResources,
