@@ -69,6 +69,7 @@ app.post('/api/get-project', async (req, res) => {
      // --- 新增：获取 IP 和时间 ---
     const clientIp = req.ip || req.headers['x-forwarded-for'] || req.socket.remoteAddress;
     const requestTime = new Date().toLocaleString('zh-CN', { timeZone: 'Asia/Shanghai' });
+    const currentRole = process.env.ROLE || 'client'; // ← 新增：获取当前角色
     
     try {
         const n8nUrl = `http://n8n-ywock00sw4ko80c4w4ogs8so:5678/webhook/verify-project`;
@@ -81,7 +82,8 @@ app.post('/api/get-project', async (req, res) => {
                 // --- 新增：传给 n8n 的额外信息 ---
                 metadata: {
                     ip: clientIp,
-                    time: requestTime
+                    time: requestTime,
+                    role: currentRole // ← 新增：告诉 n8n 当前是谁在查数据！
                 }
             })
         });
@@ -108,9 +110,13 @@ app.get('/:projectId', (req, res) => {
     const projectId = req.params.projectId;
     if (projectId === 'favicon.ico') return res.status(204).end();
 
-    // 直接渲染页面模板，只传 projectId
+    // 从环境变量中获取 ROLE，如果没有设置，默认当做 client
+    const currentRole = process.env.ROLE || 'client';
+
+    // 渲染页面模板，同时传 projectId 和 role
     res.render('project', { 
-        projectId: projectId 
+        projectId: projectId,
+        role: currentRole  // ← 新增这行，把角色传给前端
     });
 });
 
@@ -148,7 +154,37 @@ const upload = multer({
   }
 });
 
-// 图片上传接口
+// ==========================================
+// 【新增核心逻辑：动态判断文件域名】
+// ==========================================
+const getFileUrlPrefix = (req) => {
+    // 获取当前实例的角色
+    const role = process.env.ROLE || 'client';
+
+    if (role === 'supplier') {
+        // 优先尝试读取环境变量中的中立文件域名 (比如在 Coolify 配了 SUPPLIER_FILE_DOMAIN)
+        if (process.env.SUPPLIER_FILE_DOMAIN) {
+            return process.env.SUPPLIER_FILE_DOMAIN;
+        }
+        // 【保底防御】：如果没有配中立文件域名，就直接拿当前浏览器的中立主域名
+        // 这要求我们在下方开启 Express 的静态文件托管作为备用
+        return `${req.protocol}://${req.get('host')}`; 
+    } else {
+        // 【客户分支】：直接使用你配好的 Nginx 高性能域名
+        return 'https://files.yiswim.cloud';
+    }
+};
+
+// ==========================================
+// 【重要：为供应商兜底的静态文件服务】
+// ==========================================
+// 虽然客户走 Nginx，但如果供应商没有专属的 Nginx 域名，
+// 我们得让当前的 Node.js 实例能够自己把 /n8n_files/uploads 里的文件吐给供应商
+app.use('/uploads', express.static(UPLOAD_DIR));
+
+// ==========================================
+// 【修改后的图片上传接口】
+// ==========================================
 app.post('/api/upload-image', upload.single('image'), async (req, res) => {
   if (!req.file) return res.status(400).json({ success: false });
 
@@ -157,18 +193,19 @@ app.post('/api/upload-image', upload.single('image'), async (req, res) => {
   const optimizedPath = path.join(UPLOAD_DIR, optimizedName);
 
   try {
-    // 使用 sharp 压缩图片：调整尺寸（如最大宽度1200px），转换为 webp (体积更小)
     await sharp(filePath)
       .resize(1200, null, { withoutEnlargement: true })
       .webp({ quality: 80 }) 
       .toFile(optimizedPath);
 
-    // 删除原大图（可选）
     fs.unlinkSync(filePath);
+    
+    // 调用上面写好的方法，动态获取域名前缀
+    const fileBaseUrl = getFileUrlPrefix(req); 
 
     res.json({
       success: true,
-      url: `https://files.yiswim.cloud/uploads/${optimizedName}`
+      url: `${fileBaseUrl}/uploads/${optimizedName}`
     });
   } catch (err) {
     res.status(500).json({ success: false, message: "图片处理失败" });
@@ -199,7 +236,9 @@ const uploadFile = multer({
   limits: { fileSize: 25 * 1024 * 1024 } // 后端限制放宽到 25MB（前端已限制 20MB）
 });
 
-// 通用文件上传接口
+// ==========================================
+// 【修改后的通用文件上传接口】
+// ==========================================
 app.post('/api/upload-file', uploadFile.single('file'), (req, res) => {
   if (!req.file) {
     return res.status(400).json({ success: false, message: "未接收到文件" });
@@ -208,17 +247,17 @@ app.post('/api/upload-file', uploadFile.single('file'), (req, res) => {
   try {
     const filename = req.file.filename;
     
-    // 注意：普通文件不需要也不可以使用 sharp 处理，直接返回静态访问链接即可
+    // 调用上面写好的方法，动态获取域名前缀
+    const fileBaseUrl = getFileUrlPrefix(req);
+    
     res.json({
       success: true,
-      url: `https://files.yiswim.cloud/uploads/${filename}`
+      url: `${fileBaseUrl}/uploads/${filename}`
     });
   } catch (err) {
     console.error('文件上传处理失败:', err);
     res.status(500).json({ success: false, message: "文件保存失败" });
   }
 });
-
 // ==========================================
-
 
