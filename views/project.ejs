@@ -474,7 +474,18 @@
                 "alert.file_fail": "文件上传失败：",
                 "days.remaining": "剩 {{count}} 天",
                 "days.overdue": "超期 {{count}} 天",
-                "days.today": "今日交付"
+                "days.today": "今日交付",
+                "val.需求": "需求",
+                "val.准备": "准备",
+                "val.生产": "生产",
+                "val.质检": "质检",
+                "val.运输": "运输",
+                "val.完成": "完成",
+                "val.定制生产": "定制生产",
+                "val.admin": "管理员",
+                "val.write": "协作者",
+                "val.read": "访客",
+                "val.supplier": "供应商"
             }
         },
         en: {
@@ -525,7 +536,18 @@
                 "alert.file_fail": "File upload failed: ",
                 "days.remaining": "{{count}}d left",
                 "days.overdue": "Overdue {{count}}d",
-                "days.today": "Due Today"
+                "days.today": "Due Today",
+                "val.需求": "Requirements",
+                "val.准备": "Preparation",
+                "val.生产": "Production",
+                "val.质检": "Quality Control",
+                "val.运输": "Shipping",
+                "val.完成": "Completed",
+                "val.定制生产": "Custom Production",
+                "val.admin": "Administrator",
+                "val.write": "Collaborator",
+                "val.read": "Visitor",
+                "val.supplier": "Supplier"
             }
         }
     };
@@ -677,12 +699,39 @@
         if (quill) {
             quill.root.setAttribute('data-placeholder', i18next.t('editor.placeholder'));
         }
+
+        updateDynamicContent();
     }
 
     function highlightActiveLangButton() {
         document.querySelectorAll('.lang-btn').forEach(btn => {
             btn.classList.toggle('active', btn.dataset.lang === i18next.language);
         });
+    }
+
+    // 新增：专门负责翻译动态内容的函数
+    function updateDynamicContent() {
+        if (!BACKEND_DATA || !BACKEND_DATA.project_data) return;
+    
+        const projectData = BACKEND_DATA.project_data;
+        
+        // 1. 翻译项目类型 (fallback 使用原始值)
+        const typeKey = `val.${projectData.type}`;
+        document.getElementById('displayType').innerText = i18next.exists(typeKey) 
+            ? i18next.t(typeKey) 
+            : (projectData.type || i18next.t('default.type'));
+    
+        // 2. 翻译当前状态
+        const statusKey = `val.${projectData.status}`;
+        document.getElementById('displayStatus').innerText = i18next.exists(statusKey) 
+            ? i18next.t(statusKey) 
+            : (projectData.status || i18next.t('default.unknown'));
+    
+        // 3. 翻译角色
+        const roleKey = `val.${BACKEND_DATA.role}`;
+        document.getElementById('displayRole').innerText = i18next.exists(roleKey) 
+            ? i18next.t(roleKey) 
+            : i18next.t('role.visitor');
     }
 
     // ====================== 验证逻辑 ======================
@@ -714,14 +763,10 @@
                 BACKEND_DATA = result.data;
                 const projectData = BACKEND_DATA.project_data || {};
 
-                document.getElementById('displayType').innerText = projectData.type || i18next.t('default.type');
                 document.getElementById('displayUuid').innerText = projectData.uuid || PROJECT_ID;
-                document.getElementById('displayStatus').innerText = projectData.status || i18next.t('default.unknown');
-                
-                let roleText = i18next.t('role.visitor');
-                if (BACKEND_DATA.role === 'admin') roleText = i18next.t('role.admin');
-                else if (BACKEND_DATA.role === 'write') roleText = i18next.t('role.collaborator');
-                document.getElementById('displayRole').innerText = roleText;
+
+                // 这里不再手动一个个赋值，直接统一更新
+                updateDynamicContent();
 
                 // 渲染时间与标签
                 renderProjectDates();
