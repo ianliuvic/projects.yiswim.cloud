@@ -263,6 +263,12 @@ function initApp() {
   var editorContainer = document.querySelector('.editor-container');
   var editorFooter = document.querySelector('.editor-footer');
 
+  // 仅管理员可见邮件通知按钮
+  var emailBtn = document.getElementById('emailNotifyBtn');
+  if (emailBtn) {
+    emailBtn.style.display = (BACKEND_DATA.role === 'admin') ? 'inline-block' : 'none';
+  }
+
   if (BACKEND_DATA.role === 'read') {
     if (editorContainer) editorContainer.style.display = 'none';
     if (editorFooter) editorFooter.style.display = 'none';
