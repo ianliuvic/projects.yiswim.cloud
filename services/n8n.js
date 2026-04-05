@@ -21,7 +21,7 @@ async function verifyProject({ projectId, token, metadata }) {
 }
 
 async function sendEmail({ projectId, emails, content }) {
-  const response = await fetch(`${config.N8N_BASE_URL}/send-email`, {
+  const response = await fetch(`${config.N8N_BASE_URL}/send-email-project`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ projectId, emails, content }),
