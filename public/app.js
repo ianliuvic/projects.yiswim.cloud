@@ -264,9 +264,9 @@ function initApp() {
   var editorFooter = document.querySelector('.editor-footer');
 
   // 仅管理员可见邮件通知按钮
-  var emailBtn = document.getElementById('emailNotifyBtn');
-  if (emailBtn) {
-    emailBtn.style.display = (BACKEND_DATA.role === 'admin') ? 'inline-block' : 'none';
+  var emailWrapper = document.getElementById('emailNotifyWrapper');
+  if (emailWrapper) {
+    emailWrapper.style.display = (BACKEND_DATA.role === 'admin') ? 'flex' : 'none';
   }
 
   if (BACKEND_DATA.role === 'read') {
