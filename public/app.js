@@ -806,4 +806,89 @@ document.addEventListener('DOMContentLoaded', function () {
 
   // 年份
   document.getElementById('currentYear').innerText = new Date().getFullYear();
+
+  // ====================== 邮件通知弹窗 ======================
+  var emailModal = document.getElementById('emailModal');
+  var emailNotifyBtn = document.getElementById('emailNotifyBtn');
+  var emailCancelBtn = document.getElementById('emailCancelBtn');
+  var emailConfirmBtn = document.getElementById('emailConfirmBtn');
+  var emailAddresses = document.getElementById('emailAddresses');
+  var emailContent = document.getElementById('emailContent');
+  var emailError = document.getElementById('emailError');
+
+  if (emailNotifyBtn) {
+    emailNotifyBtn.addEventListener('click', function () {
+      emailAddresses.value = '';
+      emailContent.value = '';
+      emailError.style.display = 'none';
+      emailConfirmBtn.disabled = false;
+      emailConfirmBtn.innerText = i18next.t('email.confirm');
+      emailModal.style.display = 'flex';
+    });
+  }
+
+  if (emailCancelBtn) {
+    emailCancelBtn.addEventListener('click', function () {
+      emailModal.style.display = 'none';
+    });
+  }
+
+  if (emailConfirmBtn) {
+    emailConfirmBtn.addEventListener('click', async function () {
+      emailError.style.display = 'none';
+
+      var rawText = emailAddresses.value.trim();
+      if (!rawText) {
+        emailError.innerText = i18next.t('email.error_empty');
+        emailError.style.display = 'block';
+        return;
+      }
+
+      var emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      var emails = rawText.split('\n').map(function (line) { return line.trim(); }).filter(Boolean);
+
+      if (emails.length === 0) {
+        emailError.innerText = i18next.t('email.error_empty');
+        emailError.style.display = 'block';
+        return;
+      }
+
+      for (var i = 0; i < emails.length; i++) {
+        if (!emailRegex.test(emails[i])) {
+          emailError.innerText = i18next.t('email.error_invalid') + ': ' + emails[i];
+          emailError.style.display = 'block';
+          return;
+        }
+      }
+
+      emailConfirmBtn.disabled = true;
+      emailConfirmBtn.innerText = i18next.t('email.sending');
+
+      try {
+        var res = await fetch('/api/send-email', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            projectId: PROJECT_ID,
+            emails: emails,
+            content: emailContent.value.trim()
+          })
+        });
+
+        var data = await res.json();
+        if (data.success) {
+          alert(i18next.t('email.success'));
+          emailModal.style.display = 'none';
+        } else {
+          throw new Error(data.message);
+        }
+      } catch (e) {
+        console.error('邮件发送失败', e);
+        emailError.innerText = i18next.t('email.fail');
+        emailError.style.display = 'block';
+        emailConfirmBtn.disabled = false;
+        emailConfirmBtn.innerText = i18next.t('email.confirm');
+      }
+    });
+  }
 });
