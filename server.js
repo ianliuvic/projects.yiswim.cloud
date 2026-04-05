@@ -105,6 +105,33 @@ app.post('/api/get-project', async (req, res) => {
     }
 });
 
+// 【API3 新增】发送邮件通知
+app.post('/api/send-email-project', async (req, res) => {
+    const { projectId, emails, content } = req.body;
+
+    if (!projectId || !emails || !Array.isArray(emails) || emails.length === 0) {
+        return res.status(400).json({ success: false, message: '缺少必要参数' });
+    }
+
+    try {
+        const n8nUrl = `http://n8n-ywock00sw4ko80c4w4ogs8so:5678/webhook/send-email-project`;
+        const response = await fetch(n8nUrl, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ projectId, emails, content })
+        });
+
+        if (response.ok) {
+            res.json({ success: true });
+        } else {
+            res.status(500).json({ success: false, message: 'n8n 处理失败' });
+        }
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ success: false, message: '服务器错误' });
+    }
+});
+
 // 【拦截2 修改】生成项目页面 (不再提前请求数据，只返回空壳+弹窗)
 app.get('/:projectId', (req, res) => {
     const projectId = req.params.projectId;
