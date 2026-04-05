@@ -280,6 +280,79 @@ button {
 .auth-modal button:disabled { background: var(--gray-400); cursor: not-allowed; }
 .auth-error { color: #dc2626; font-size: 13px; margin-top: 10px; display: none; }
 
+/* ====================== 邮件通知按钮 ====================== */
+.btn-email-notify {
+    background: var(--white);
+    color: var(--primary);
+    border: 1px solid var(--primary);
+    padding: 10px 20px;
+    border-radius: 6px;
+    font-weight: bold;
+    font-size: 14px;
+    transition: all 0.2s;
+}
+
+.btn-email-notify:hover { background: var(--primary); color: var(--white); }
+
+/* ====================== 邮件弹窗 ====================== */
+.email-modal-overlay {
+    position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
+    background: rgba(0, 0, 0, 0.5); backdrop-filter: blur(5px);
+    display: flex; justify-content: center; align-items: center; z-index: 10000;
+    padding: 20px;
+}
+
+.email-modal {
+    background: var(--white); padding: 30px; border-radius: var(--radius);
+    width: 100%; max-width: 480px; box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+}
+
+.email-modal h2 { margin-bottom: 20px; color: var(--gray-800); font-size: 18px; }
+
+.email-label {
+    display: block; font-size: 14px; font-weight: 600;
+    color: var(--gray-800); margin-bottom: 6px;
+}
+
+.email-label .required { color: #dc2626; }
+
+.email-textarea {
+    width: 100%; padding: 12px; border: 1px solid var(--gray-300);
+    border-radius: 6px; font-size: 14px; font-family: inherit;
+    resize: vertical; outline: none; margin-bottom: 16px;
+    line-height: 1.5;
+}
+
+.email-textarea:focus { border-color: var(--primary); }
+
+.email-error {
+    color: #dc2626; font-size: 13px; margin-bottom: 12px; display: none;
+}
+
+.email-actions {
+    display: flex; justify-content: flex-end; gap: 12px;
+}
+
+.btn-email-cancel {
+    padding: 10px 24px; border-radius: 6px; font-size: 14px; font-weight: 600;
+    background: var(--gray-100); color: var(--gray-800); border: 1px solid var(--gray-300);
+}
+
+.btn-email-cancel:hover { background: var(--gray-200); }
+
+.btn-email-confirm {
+    padding: 10px 24px; border-radius: 6px; font-size: 14px; font-weight: 600;
+    background: var(--primary); color: var(--white); border: none;
+}
+
+.btn-email-confirm:hover { background: var(--primary-hover); }
+.btn-email-confirm:disabled { background: var(--gray-400); cursor: not-allowed; }
+
+@media (max-width: 768px) {
+    .btn-email-notify { width: 100%; padding: 12px; font-size: 15px; margin-bottom: 10px; }
+    .editor-footer { flex-wrap: wrap; }
+}
+
 /* ====================== 删除按钮 ====================== */
 .btn-delete-record {
     position: absolute; top: 0; right: 0;
