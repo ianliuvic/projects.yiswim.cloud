@@ -69,6 +69,7 @@
             <div id="editor"></div>
         </div>
         <div class="editor-footer">
+            <button class="btn-email-notify" id="emailNotifyBtn" data-i18n="button.email_notify">📧 发送邮件通知</button>
             <button class="btn-submit" id="submitBtn" data-i18n="button.save">保存当前记录</button>
         </div>
         <div class="history-section">
@@ -88,6 +89,22 @@
         | <span data-i18n="footer.slogan">专属定制 · 品质追踪</span>
     </div>
 
+</div>
+
+<!-- 邮件通知弹窗 -->
+<div id="emailModal" class="email-modal-overlay" style="display:none;">
+    <div class="email-modal">
+        <h2 data-i18n="email.title">发送邮件通知</h2>
+        <label class="email-label" data-i18n="email.address_label">收件邮箱 <span class="required">*</span></label>
+        <textarea id="emailAddresses" class="email-textarea" rows="4" placeholder="每行输入一个邮箱地址" data-i18n-placeholder="email.address_placeholder"></textarea>
+        <label class="email-label" data-i18n="email.content_label">邮件内容（选填）</label>
+        <textarea id="emailContent" class="email-textarea" rows="4" placeholder="输入通知内容..." data-i18n-placeholder="email.content_placeholder"></textarea>
+        <div id="emailError" class="email-error"></div>
+        <div class="email-actions">
+            <button class="btn-email-cancel" id="emailCancelBtn" data-i18n="email.cancel">取消</button>
+            <button class="btn-email-confirm" id="emailConfirmBtn" data-i18n="email.confirm">确定发送</button>
+        </div>
+    </div>
 </div>
 
 <!-- 大图预览 -->
