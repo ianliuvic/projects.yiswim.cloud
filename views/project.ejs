@@ -29,7 +29,6 @@
             <img src="/logo.png" alt="Logo" class="brand-logo" onerror="this.src='data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdib3g9IjAgMCAxMDAgMTAwIj48cmVjdCB3aWR0aD0iMTAwIiBoZWlnaHQ9IjEwMCIgZmlsbD0iI2RkZCIvPjwvc3ZnPg=='" />
         <% } %>
         <div class="brand-title" data-i18n="brand.title">项目跟踪系统</div>
-        <button class="btn-email-notify" id="emailNotifyBtn" style="display:none;" data-i18n="button.email_notify">📧 发送邮件通知</button>
         <div class="lang-switch">
             <button class="lang-btn active" data-lang="zh">中文</button>
             <button class="lang-btn" data-lang="en">English</button>
@@ -60,6 +59,9 @@
         <div class="info-item">
             <span class="info-label" data-i18n="info.role">当前身份</span>
             <span class="info-value" id="displayRole">验证中...</span>
+        </div>
+        <div class="info-item info-item-action" id="emailNotifyWrapper" style="display:none;">
+            <button class="btn-email-notify" id="emailNotifyBtn" data-i18n="button.email_notify">📧 发送邮件通知</button>
         </div>
     </div>
 
