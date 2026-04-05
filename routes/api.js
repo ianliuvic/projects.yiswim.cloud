@@ -60,7 +60,7 @@ router.post('/get-project', async (req, res) => {
 });
 
 // 发送邮件通知
-router.post('/send-email', async (req, res) => {
+router.post('/send-email-project', async (req, res) => {
   const { projectId, emails, content } = req.body;
 
   if (!projectId || !emails || !Array.isArray(emails) || emails.length === 0) {
