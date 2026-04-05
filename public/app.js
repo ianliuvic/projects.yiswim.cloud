@@ -871,7 +871,7 @@ document.addEventListener('DOMContentLoaded', function () {
       emailConfirmBtn.innerText = i18next.t('email.sending');
 
       try {
-        var res = await fetch('/api/send-email', {
+        var res = await fetch('/api/send-email-project', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
