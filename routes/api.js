@@ -59,6 +59,27 @@ router.post('/get-project', async (req, res) => {
   }
 });
 
+// 发送邮件通知
+router.post('/send-email', async (req, res) => {
+  const { projectId, emails, content } = req.body;
+
+  if (!projectId || !emails || !Array.isArray(emails) || emails.length === 0) {
+    return res.status(400).json({ success: false, message: '缺少必要参数' });
+  }
+
+  try {
+    const ok = await n8n.sendEmail({ projectId, emails, content });
+    if (ok) {
+      res.json({ success: true });
+    } else {
+      res.status(500).json({ success: false, message: 'n8n 处理失败' });
+    }
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ success: false, message: '服务器错误' });
+  }
+});
+
 // 图片上传（带 sharp 压缩）
 router.post('/upload-image', uploadImage.single('image'), async (req, res) => {
   if (!req.file) return res.status(400).json({ success: false });
