@@ -20,4 +20,13 @@ async function verifyProject({ projectId, token, metadata }) {
   return { ok: response.ok, result };
 }
 
-module.exports = { appendRecord, verifyProject };
+async function sendEmail({ projectId, emails, content }) {
+  const response = await fetch(`${config.N8N_BASE_URL}/send-email`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ projectId, emails, content }),
+  });
+  return response.ok;
+}
+
+module.exports = { appendRecord, verifyProject, sendEmail };
