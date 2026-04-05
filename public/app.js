@@ -203,6 +203,7 @@ async function verifyToken(token, isAutoLogin) {
       renderProjectDates();
 
       var rawNodes = projectData.nodesData || BACKEND_DATA.nodesData || {};
+      BACKEND_DATA._emailRecord = rawNodes.emailRecord || [];
       var normalizedNodes = {};
 
       Object.keys(rawNodes).forEach(function (key) {
@@ -824,7 +825,8 @@ document.addEventListener('DOMContentLoaded', function () {
 
   if (emailNotifyBtn) {
     emailNotifyBtn.addEventListener('click', function () {
-      emailAddresses.value = '';
+      var saved = BACKEND_DATA._emailRecord || [];
+      emailAddresses.value = saved.length > 0 ? saved.join('\n') : '';
       emailContent.value = '';
       emailError.style.display = 'none';
       emailConfirmBtn.disabled = false;
